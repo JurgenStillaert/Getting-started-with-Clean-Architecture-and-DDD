@@ -1,57 +1,232 @@
-# Starten met Clean Architecture en Domain Driven Design
+# Beginsituatie
 
-In deze repository gaan we stap voor stap een bestaande applicatie ombouwen gebruik makende van aanbevolen patterns en architecturen zoals Clean Architecture en Domain Driven Design (DDD).
+## Situatieschets
 
-Onder Clean Architecture verstaan we software design die als doel heeft om zogenaamde loosely coupled application components te bouwen. De drie meest bekende en beschreven vormen zijn:
+We beschrijven hieronder het deel dat in de code is opgenomen.
 
-- Hexagonal architecture, Alistar Cockburn, 2005
-- Onion Architecture, Jeffrey Palermo, 2008
-- Clean Architecture, Robert Martin, 2012
+Buyyu is een bedrijf gespecialiseerd in het verkopen van bureaus en bureaustoelen om grote kantoren in te richten. De order desk krijgt de bestellingen binnen via de sales departement en zetten deze in de complete status als deze klaar is om te verzenden.
 
-Clean Architecture is een tegenreactie op de alom gebruikte layered of n-tier architecture, een architectuurvorm waarmee we bekend zijn, in gedrild zijn en die alom beschreven is. Deze architectuurvorm is, wanneer ze goed opgebouwd wordt, een zeer goede oplossing voor vele projecten. 
-Echter, zijn er ook een aantal nadelen verbonden aan deze architectuurvorm:
+Het magazijn zorgt voor de verzending, maar er moet wel genoeg voorraad zijn. Indien na het verzenden de stock van een product onder de 100 items daalt dan wordt er automatisch een nieuwe bestelling geplaatst. We gaan er hiervan uit dat de levering onmiddellijk plaats vindt en de stock weer verhoogd wordt.
 
-![layered](README.assets/layered.jpeg)
+Wanneer er een betaling binnenkomt wordt deze geregistreerd in het systeem.
 
+Bij elke stap moet de klant een e-mail krijgen.
 
 
-- Het stimuleert het gebruik van een Database-Driven Design. De verschillende lagen steunen op elkaar met een neerwaartse verbondenheid. Dit resulteert in de praktijk dat de developers eerst nadenken over hoe ze een databasemodel moeten opbouwen. Echter, de business wilt dat we een probleem oplossen voor hun, en zij spreken in termen van gedrag, niet "state". Met de opkomst van de Object-Relational Mapping (ORM) frameworks heeft deze werkwijze nog een extra boost gekregen.
-- Grenzen worden niet meer goed bewaakt. Domain layer, waar uw business logic uiteindelijk zit, kan aan de entities om deze te manipuleren op state.  Het hele idee achter encapsulation, toch één van de vier pijlers van Object Oriented Programming, wordt op deze manier genegeerd. Maar ook als de Domain layer rechtstreeks de entities gaat kunnen aanspreken en er mee werken is er een sterke koppeling ontstaan tussen deze beide delen. 
-- Het is makkelijker om shortcuts te nemen. In principe houdt niets een developer tegen om van een hoger liggende laag een stap over te slagen en direct te werken met entities in de laagste laag. Ook al is dit een bewuste én éénmalige shortcut, de volgende developer kan deze shortcut interpreteren als een normaal gedrag en dit herhalen.
-- Wanneer de applicatie groeit en er zijn een aantal shortcuts genomen, is het ook moeilijker om testen te schrijven aangezien bepaalde delen niet meer makkelijk te mocken zijn. Al te dikwijls merk je dat ook gewerkt wordt met het static aanroepen van methodes in een lagere laag, ook al zijn het helper classes, die dan ook weer gebruik maken van onderdelen in een lager liggende laag.
 
-Wat willen we dan wel bereiken? Clean Architecture wordt voorgesteld door een aantal concentrische cirkels:
+We concentreren ons op en beperken ons tot de order service. De andere contexten, product catalogus en magazijn, zijn bijkomende contexten die niet verder uitgewerkt zijn.
 
-![image-20210213152031362](README.assets/image-20210213152031362.png)
+## Database model
 
-De linkerkant zijn de drivers van onze applicatie. Dit kunnen gebruikers zijn die op een knop drukken in een web applicatie, een andere API die data nodig heeft van onze applicatie, een queue waar onze applicatie op luistert, of andere triggers die afgaan.
+De kans is groot dat de developer bij het horen van dit verhaal een papier genomen heeft en volgend databasemodel getekend heeft:
 
-Van zodra er een actie aanvraag wordt ontvangen is het de taak van de infrastructure-laag om deze te vertalen en naar een binnenste laag door te geven. In de applicatie-laag vinden we onder andere de use cases, die dus te mappen zijn naar het gedrag dat de gebruiker wilt. Het kan zijn dat deze laag terug aan de rechterkant een connectie maakt met de infrastructure-laag, bijvoorbeeld met een repository met de vraag om data op te halen in de database.
+![image-20210222193132283](README.assets/image-20210222193132283.png)
 
-Naar gelang van wat er beschreven staat in de use case kan een actie op de linkerkant een reactie ontlokken aan de rechterkant, deze kant wordt dan ook "driven by" onze applicatie. We kunnen één of meerdere messages in een queue steken, een andere API oproepen, gegevens uit een database halen, een e-mail gaan sturen, enz.
+Vanuit het database-model maakt de developer dan zijn classes op.
 
-Wat belangrijk is dat de buitenste lagen, implementatie-details vertegenwoordigen. Voor de binnenste laag maakt het niet uit welke database of welke mailserver er gebruikt wordt, de infrastructure-laag neemt dit voor zijn rekening. Met deze opzet is het ook duidelijk dat dit geen database-driven design is. Hoe langer we beslissingen van de implementatie-details kunnen uitstellen, en ons meer kunnen concentreren op de echte waarde, dus de binnenste lagen, hoe beter.
+## Solution overzicht
 
-Waar past Domain Driven Design nu in dit plaatje? Domain Driven Design werd door Eric Evans beschreven in zijn blue book: "Domain Driven Design: Tackling Complexity in the Heart of Software" (2004). Eerst en vooral: DDD is veel breder dan een mogelijke technische implementatie, maar in het boek worden wel enkele tactical patterns aangereikt die kunnen gebruikt worden. Later zullen we deze ook deels gaan implementeren.
-Als we kijken waar we dit gaan doen, dan zal dit in de domain en application laag zijn.
+Open de in de src-folder de buyyu.sln. Deze heeft de volgende 5 projecten:
 
-## Werkwijze
+1. buyyu.web: dit is onze api en tevens start-project. De focus ligt niet op dit project, dus is deze niet uitgewerkt om bijvoorbeeld REST-compliant te zijn. We hebben wel Swagger UI tot onze beschikking zodat we in de browser kunnen testen.
+2. buyyu.Models: Hier kan je de dto's terug vinden die in verschillende lagen gebruikt worden. Er zijn geen aparte dto's aangemaakt voor aanmaken en aanpassen van resources.
+3. buyyu.BL: hier zit de business logica geprogrammeerd. Er zijn 4 services:
+   1. OrderService: deze bevat allerlei methodes om orders aan te maken, aan te passen, te verzenden of te betalen
+   2. ProductService: voor het ophalen van de product catalogus
+   3. WarehouseService: voor het beheer van de stock
+   4. MailService: voor het verzenden van mails
+4. buyyu.Data: de data-laag met de entities en de DbContext.
+5. buyyu.Tests: met enkele unit testen.
 
-Deze repository bestaat uit een aantal branches:
+Dit is dus een klassieke layer aanpak.
 
-- master: deze branch, met het waarom en de werkwijze
-- 0 Starting point: Een layered applicatie en uitleg over de problem space
-- 1 Encapsulation: Toepassen van encapsulation op onze entity classes
-- 2 DDD: Toepassen van enkele tactical patterns
-- 3 CQRS: Het opsplitsen van onze methods naar commands en queries
-- 4 Event driven: Gebruik maken van Domain Events en event handlers die er op reageren
-- 5 Functioneel opsplitsen: In plaats van een technische onderverdeling van onze applicatie, gaan we eerst functioneel alles bij elkaar plaatsen
-- 6 Event sourcing: Domain Events gaan opslagen als onze single source of truth 
+## Starten
 
-## Technisch
+Voer eerst volgend command uit in de "Package Manager Console" om de database aan te maken en data te seeden:
 
-De applicatie en code voorbeelden zijn geschreven C#
+```
+Update-Database
+```
 
-## Disclaimer
+Zet project buyyu.Web als startup project en start het project.
 
-De code die hier getoond wordt is zeker niet klaar voor productie, er wordt ook abstractie gemaakt van heel wat cross cutting concerns en authentication / authorization.
+Normaal opent de Swagger UI nu in de browser:
+
+![image-20210222194223638](README.assets/image-20210222194223638.png)
+
+
+
+Om de product catalogus te bekijken, voer de Get Products uit:
+
+```json
+[
+  {
+    "productId": "5ca659b1-25b1-45c1-9755-3a3cd8591b9e",
+    "name": "Desk Techni",
+    "description": "The Techni Mobili Complete Workstation Desk is everything you need in a computer desk and stay organized.",
+    "price": 295,
+    "available": 100
+  },
+  {
+    "productId": "32f75bce-16a0-4070-9fac-4289678c191f",
+    "name": "Office Chair Manager",
+    "description": "The Lockland Big & Tall bonded leather managers chair offers top quality comfort, multiple adjustment features.",
+    "price": 263,
+    "available": 145
+  },
+  {
+    "productId": "bcbc1851-6317-4022-be62-53d29c04bcda",
+    "name": "Vintage Desk",
+    "description": "Carve out a personal workspace with this storage desk. The simple design and classic mid-century modern details make this desk perfect for modern decor themes or casual open office settings, and the rectangular desktop provides space for a laptop and peripherals.",
+    "price": 305,
+    "available": 179
+  },
+  {
+    "productId": "de679c55-4c13-4fe7-91b4-69cbce3223a2",
+    "name": "Office Chair Beta",
+    "description": "Implement an ergonomic seating solution for your office with this maroon multipurpose chair. The included tilt tension knob lets you calibrate the tilt and recline resistance to your desired configuration, while the adjustable seat and armrests optimize your seating position for correct posture.",
+    "price": 169,
+    "available": 213
+  }
+]
+```
+
+Onder Post Order kunnen we bijvoorbeeld de volgende body uitvoeren om een order aan te maken:
+
+```json
+{
+  "clientId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "orderlines": [
+    {
+      "productId": "bcbc1851-6317-4022-be62-53d29c04bcda",
+      "qty": 10
+    },
+    {
+      "productId": "de679c55-4c13-4fe7-91b4-69cbce3223a2",
+      "qty": 20
+    }
+  ]
+}
+```
+
+We krijgen dan normaal gezien een 200 status terug met de volgende response:
+
+```json
+{
+  "orderId": "a47dced5-a2fc-431a-bdda-6bf4ac665bbe",
+  "clientId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "orderStateId": "bd8be3d2-8028-45e2-a211-bf737a2508c1",
+  "orderDate": "2021-02-22T19:45:32.6606407",
+  "totalAmount": 6430,
+  "paidAmount": 0,
+  "state": "NEW",
+  "orderlines": [
+    {
+      "orderlineId": "4b9ec976-0197-4231-84e0-7c6c7d37a759",
+      "productId": "de679c55-4c13-4fe7-91b4-69cbce3223a2",
+      "price": 169,
+      "qty": 20
+    },
+    {
+      "orderlineId": "03f03028-638d-4f58-9f83-9fafc167cff9",
+      "productId": "bcbc1851-6317-4022-be62-53d29c04bcda",
+      "price": 305,
+      "qty": 10
+    }
+  ]
+}
+```
+
+We kunnen de order bevestigen door Order/a47dced5-a2fc-431a-bdda-6bf4ac665bbe/confirm uit te voeren, met als volgende response:
+
+```json
+{
+  "orderId": "a47dced5-a2fc-431a-bdda-6bf4ac665bbe",
+  "clientId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "orderStateId": "82d9ce01-9f25-48b1-8af3-93f52426676f",
+  "orderDate": "2021-02-22T19:47:07.0611767",
+  "totalAmount": 6430,
+  "paidAmount": 0,
+  "state": "CNF",
+  "orderlines": [
+    {
+      "orderlineId": "4b9ec976-0197-4231-84e0-7c6c7d37a759",
+      "productId": "de679c55-4c13-4fe7-91b4-69cbce3223a2",
+      "price": 169,
+      "qty": 20
+    },
+    {
+      "orderlineId": "03f03028-638d-4f58-9f83-9fafc167cff9",
+      "productId": "bcbc1851-6317-4022-be62-53d29c04bcda",
+      "price": 305,
+      "qty": 10
+    }
+  ]
+}
+```
+
+Voor de verzending uit te voeren doen we Order/a47dced5-a2fc-431a-bdda-6bf4ac665bbe/ship, met als volgende response:
+
+```json
+{
+  "orderId": "a47dced5-a2fc-431a-bdda-6bf4ac665bbe",
+  "clientId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "orderStateId": "4b5549bb-b1b2-4964-9818-da984baab4ff",
+  "orderDate": "2021-02-22T19:47:07.0611767",
+  "totalAmount": 6430,
+  "paidAmount": 0,
+  "state": "SHP",
+  "orderlines": [
+    {
+      "orderlineId": "4b9ec976-0197-4231-84e0-7c6c7d37a759",
+      "productId": "de679c55-4c13-4fe7-91b4-69cbce3223a2",
+      "price": 169,
+      "qty": 20
+    },
+    {
+      "orderlineId": "03f03028-638d-4f58-9f83-9fafc167cff9",
+      "productId": "bcbc1851-6317-4022-be62-53d29c04bcda",
+      "price": 305,
+      "qty": 10
+    }
+  ]
+}
+```
+
+Tenslotte wordt een betaling als volgt in gegeven: Order/a47dced5-a2fc-431a-bdda-6bf4ac665bbe/pay met als body 6430, en volgende response wordt ontvangen:
+
+```json
+{
+  "orderId": "a47dced5-a2fc-431a-bdda-6bf4ac665bbe",
+  "clientId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "orderStateId": "4b5549bb-b1b2-4964-9818-da984baab4ff",
+  "orderDate": "2021-02-22T19:47:07.0611767",
+  "totalAmount": 6430,
+  "paidAmount": 6430,
+  "state": "SHP",
+  "orderlines": [
+    {
+      "orderlineId": "4b9ec976-0197-4231-84e0-7c6c7d37a759",
+      "productId": "de679c55-4c13-4fe7-91b4-69cbce3223a2",
+      "price": 169,
+      "qty": 20
+    },
+    {
+      "orderlineId": "03f03028-638d-4f58-9f83-9fafc167cff9",
+      "productId": "bcbc1851-6317-4022-be62-53d29c04bcda",
+      "price": 305,
+      "qty": 10
+    }
+  ]
+}
+```
+
+## Taken
+
+1. Speel met de applicatie via Swagger UI of Postman om er bekend mee te raken. Niet alle scenario's zijn afgedekt, indien er zich een fout voordoet, voel u vrij om correcties aan te brengen.
+2. Bekijk de code, waar wordt wat aangeroepen.
+3. Voer de unit testen uit.
+
+## Volgende stap
+
+We gaan dit project nu stap voor stap verbeteren. In de volgende stap gaan we encapsulation inbouwen via private setters en methods verplaatsen van de service naar onze domain objecten. Dit heeft nog een aantal andere implicaties zoals hoe we de unit testen moeten mocken.
