@@ -3,7 +3,6 @@ using buyyu.Data;
 using buyyu.Data.Repositories.Interfaces;
 using buyyu.Models;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -44,15 +43,12 @@ namespace buyyu.BL
 		{
 			var newOrderState = await _orderStateRepository.GetOrderStateByCode(NEWSTATECODE);
 
-			var newOrder = new Order
+			var newOrder = Order.Create(orderDto.ClientId, newOrderState.Id);
+			foreach (var orderline in orderDto.Orderlines)
 			{
-				ClientId = orderDto.ClientId,
-				OrderStateId = newOrderState.Id,
-				OrderDate = DateTime.Now,
-				PaidAmount = 0,
-				Lines = new List<Orderline>()
-			};
-			await ProcessOrderLines(orderDto, newOrder);
+				var product = await _productRepository.GetProduct(orderline.ProductId);
+				newOrder.AddOrderline(product.Id, product.Price, orderline.Qty);
+			}
 
 			await _orderRepository.Save(newOrder);
 
@@ -68,7 +64,30 @@ namespace buyyu.BL
 				throw new Exception("Cannot change a confirmed order");
 			}
 
-			await ProcessOrderLines(orderDto, order);
+			//Remove orderlines
+			var toRemoveOrderlineProducts = order.Lines.Select(ol => ol.ProductId).Except(orderDto.Orderlines.Select(ol => ol.ProductId));
+			foreach (var toRemoveOrderlineProduct in toRemoveOrderlineProducts)
+			{
+				order.RemoveOrderline(toRemoveOrderlineProduct);
+			}
+
+			//Update orderlines
+			var toUpdateOrderlineProducts = orderDto.Orderlines.Select(ol => ol.ProductId).Intersect(order.Lines.Select(ol => ol.ProductId));
+			foreach (var toUpdateOrderlineProduct in toUpdateOrderlineProducts)
+			{
+				var dtoOrderline = orderDto.Orderlines.First(ol => ol.ProductId == toUpdateOrderlineProduct);
+				var product = await _productRepository.GetProduct(toUpdateOrderlineProduct);
+				order.UpdateOrderline(product.Id, product.Price, dtoOrderline.Qty);
+			}
+
+			//Add orderlines
+			var toAddOrderlineProducts = orderDto.Orderlines.Select(ol => ol.ProductId).Except(order.Lines.Select(ol => ol.ProductId));
+			foreach (var toAddOrderlineProduct in toAddOrderlineProducts)
+			{
+				var dtoOrderline = orderDto.Orderlines.First(ol => ol.ProductId == toAddOrderlineProduct);
+				var product = await _productRepository.GetProduct(toAddOrderlineProduct);
+				order.AddOrderline(product.Id, product.Price, dtoOrderline.Qty);
+			}
 
 			await _orderRepository.Save(order);
 
@@ -87,8 +106,7 @@ namespace buyyu.BL
 
 			var confirmedOrderState = await _orderStateRepository.GetOrderStateByCode(CONFIRMEDSTATECODE);
 
-			order.OrderStateId = confirmedOrderState.Id;
-			order.OrderDate = DateTime.Now;
+			order.Confirm(confirmedOrderState.Id);
 
 			await _orderRepository.Save(order);
 
@@ -116,7 +134,7 @@ namespace buyyu.BL
 
 			var shippedOrderState = await _orderStateRepository.GetOrderStateByCode(SHIPPEDSTATECODE);
 
-			order.OrderStateId = shippedOrderState.Id;
+			order.Ship(shippedOrderState.Id);
 
 			await _orderRepository.Save(order);
 
@@ -130,9 +148,7 @@ namespace buyyu.BL
 		{
 			var order = await _orderRepository.GetOrder(id);
 
-			order.PaidAmount += amount;
-
-			order.Payments.Add(new Payment { PaidAmount = amount, PayDate = DateTime.Now });
+			order.ReceivePayment(amount);
 
 			await _orderRepository.Save(order);
 
@@ -154,48 +170,6 @@ namespace buyyu.BL
 			{
 				throw new Exception("Not enough products in stock.");
 			}
-		}
-
-		private async Task ProcessOrderLines(OrderDto orderDto, Order order)
-		{
-			foreach (var orderline in orderDto.Orderlines)
-			{
-				var product = await _productRepository.GetProduct(orderline.ProductId);
-
-				if (product.QtyInStock < orderline.Qty)
-				{
-					throw new Exception("Not enough products in stock.");
-				}
-
-				if (orderline.OrderlineId != Guid.Empty)
-				{
-					var existingOrderLine = order.Lines.FirstOrDefault(x => x.Id == orderline.OrderlineId);
-					existingOrderLine.ProductId = product.Id;
-					existingOrderLine.Price = product.Price;
-					existingOrderLine.Qty = orderline.Qty;
-				}
-				else
-				{
-					var existingOrderLine = order.Lines.FirstOrDefault(x => x.ProductId == orderline.ProductId);
-					if (existingOrderLine != null)
-					{
-						existingOrderLine.ProductId = product.Id;
-						existingOrderLine.Price = product.Price;
-						existingOrderLine.Qty = orderline.Qty;
-					}
-					else
-					{
-						order.Lines.Add(new Orderline
-						{
-							ProductId = product.Id,
-							Price = product.Price,
-							Qty = orderline.Qty
-						});
-					}
-				}
-			}
-
-			order.TotalAmount = order.Lines.Select(ol => ol.Price * ol.Qty).Sum();
 		}
 	}
 }

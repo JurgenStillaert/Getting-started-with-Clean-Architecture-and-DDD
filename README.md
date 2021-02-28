@@ -1,232 +1,337 @@
-# Beginsituatie
+# Encapsulation
 
-## Situatieschets
+Laten we even terug gaan naar de eerste keer dat we over Object Oriented Programming geleerd hebben. Daar hebben we geleerd dat er objecten zijn die zowel data als code hebben, een "state" en een "behavior".
 
-We beschrijven hieronder het deel dat in de code is opgenomen.
+Stel, we hebben een auto, en die heeft 2 pedalen: om te versnellen, en om te vertragen.
 
-Buyyu is een bedrijf gespecialiseerd in het verkopen van bureaus en bureaustoelen om grote kantoren in te richten. De order desk krijgt de bestellingen binnen via de sales departement en zetten deze in de complete status als deze klaar is om te verzenden.
+<img src="https://www.leuvenmindgate.be/files/_contentImage/feb.png" alt="Formula Electric Belgium reveals digital design of… | Leuven MindGate" style="zoom: 33%;" />
 
-Het magazijn zorgt voor de verzending, maar er moet wel genoeg voorraad zijn. Indien na het verzenden de stock van een product onder de 100 items daalt dan wordt er automatisch een nieuwe bestelling geplaatst. We gaan er hiervan uit dat de levering onmiddellijk plaats vindt en de stock weer verhoogd wordt.
+| Gedrag          | State          |
+| --------------- | -------------- |
+| Versnellen(100) | Snelheid = 100 |
+| Vertragen(80)   | Snelheid = 20  |
 
-Wanneer er een betaling binnenkomt wordt deze geregistreerd in het systeem.
+In code zouden we dit als volgt kunnen schrijven:
 
-Bij elke stap moet de klant een e-mail krijgen.
-
-
-
-We concentreren ons op en beperken ons tot de order service. De andere contexten, product catalogus en magazijn, zijn bijkomende contexten die niet verder uitgewerkt zijn.
-
-## Database model
-
-De kans is groot dat de developer bij het horen van dit verhaal een papier genomen heeft en volgend databasemodel getekend heeft:
-
-![image-20210222193132283](README.assets/image-20210222193132283.png)
-
-Vanuit het database-model maakt de developer dan zijn classes op.
-
-## Solution overzicht
-
-Open de in de src-folder de buyyu.sln. Deze heeft de volgende 5 projecten:
-
-1. buyyu.web: dit is onze api en tevens start-project. De focus ligt niet op dit project, dus is deze niet uitgewerkt om bijvoorbeeld REST-compliant te zijn. We hebben wel Swagger UI tot onze beschikking zodat we in de browser kunnen testen.
-2. buyyu.Models: Hier kan je de dto's terug vinden die in verschillende lagen gebruikt worden. Er zijn geen aparte dto's aangemaakt voor aanmaken en aanpassen van resources.
-3. buyyu.BL: hier zit de business logica geprogrammeerd. Er zijn 4 services:
-   1. OrderService: deze bevat allerlei methodes om orders aan te maken, aan te passen, te verzenden of te betalen
-   2. ProductService: voor het ophalen van de product catalogus
-   3. WarehouseService: voor het beheer van de stock
-   4. MailService: voor het verzenden van mails
-4. buyyu.Data: de data-laag met de entities en de DbContext.
-5. buyyu.Tests: met enkele unit testen.
-
-Dit is dus een klassieke layer aanpak.
-
-## Starten
-
-Voer eerst volgend command uit in de "Package Manager Console" om de database aan te maken en data te seeden:
-
-```
-Update-Database
-```
-
-Zet project buyyu.Web als startup project en start het project.
-
-Normaal opent de Swagger UI nu in de browser:
-
-![image-20210222194223638](README.assets/image-20210222194223638.png)
-
-
-
-Om de product catalogus te bekijken, voer de Get Products uit:
-
-```json
-[
-  {
-    "productId": "5ca659b1-25b1-45c1-9755-3a3cd8591b9e",
-    "name": "Desk Techni",
-    "description": "The Techni Mobili Complete Workstation Desk is everything you need in a computer desk and stay organized.",
-    "price": 295,
-    "available": 100
-  },
-  {
-    "productId": "32f75bce-16a0-4070-9fac-4289678c191f",
-    "name": "Office Chair Manager",
-    "description": "The Lockland Big & Tall bonded leather managers chair offers top quality comfort, multiple adjustment features.",
-    "price": 263,
-    "available": 145
-  },
-  {
-    "productId": "bcbc1851-6317-4022-be62-53d29c04bcda",
-    "name": "Vintage Desk",
-    "description": "Carve out a personal workspace with this storage desk. The simple design and classic mid-century modern details make this desk perfect for modern decor themes or casual open office settings, and the rectangular desktop provides space for a laptop and peripherals.",
-    "price": 305,
-    "available": 179
-  },
-  {
-    "productId": "de679c55-4c13-4fe7-91b4-69cbce3223a2",
-    "name": "Office Chair Beta",
-    "description": "Implement an ergonomic seating solution for your office with this maroon multipurpose chair. The included tilt tension knob lets you calibrate the tilt and recline resistance to your desired configuration, while the adjustable seat and armrests optimize your seating position for correct posture.",
-    "price": 169,
-    "available": 213
-  }
-]
-```
-
-Onder Post Order kunnen we bijvoorbeeld de volgende body uitvoeren om een order aan te maken:
-
-```json
+```c#
+public class Car
 {
-  "clientId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-  "orderlines": [
-    {
-      "productId": "bcbc1851-6317-4022-be62-53d29c04bcda",
-      "qty": 10
-    },
-    {
-      "productId": "de679c55-4c13-4fe7-91b4-69cbce3223a2",
-      "qty": 20
-    }
-  ]
+	public int Speed { get; private set; }
+
+	public void Accelerate(int speedUp)
+	{
+		if (Speed + speedUp > 120)
+		{
+			Speed = 120;
+		}
+		else
+		{
+			Speed += speedUp;
+		}
+	}
+
+	public void SlowDown(int speedDown)
+	{
+		if (Speed - speedDown < 0)
+		{
+			Speed = 0;
+		}
+		else
+		{
+			Speed -= speedDown;
+		}
+	}
 }
 ```
 
-We krijgen dan normaal gezien een 200 status terug met de volgende response:
+We regelen de snelheid via de methodes die beschikbaar zijn, en doen bovendien nog enkele controles om zeker te zijn dat we geen snelheidsboete krijgen of dat we geen negatieve snelheid hebben.
 
-```json
+We leerden ook dat er 4 pijlers zijn bij OOP:
+
+1. Inheritance
+2. Abstraction
+3. Polymorpism
+4. en Encapsulation
+
+Op Wikipedia [1] lezen we:
+
+> Objecten vormen de koppeling tussen enerzijds gegevens en anderzijds bewerkingen die op die gegevens worden uitgevoerd. We spreken van [inkapselen](https://nl.wikipedia.org/wiki/Encapsulatie) of *encapsulatie* als andere programma-eenheden de gegevens niet rechtstreeks aanspreken, maar wel via de tussenlaag van een bewerking. Programmeurs die een object gebruiken hoeven zich slechts bewust te zijn van de interface van dat object, terwijl de implementatie alleen een zaak is van de programmeurs die het object ontwikkelen.[[3\]](https://nl.wikipedia.org/wiki/Objectgeoriënteerd#cite_note-Stiller-3)
+>
+> Bij klasse-gebaseerde talen betekent encapsulatie dat de programmeur die een object van een klasse gebruikt, niet hoeft na te denken over de interne werking van die klasse. Een cirkelklasse kan bijvoorbeeld zijn [attribuut](https://nl.wikipedia.org/wiki/Attribuut_(informatica)) "`diameter`" niet publiek maken maar de verschillende [methoden](https://nl.wikipedia.org/wiki/Methode_(objectoriëntatie)) om de oppervlakte op te vragen of de diameter te veranderen wel. De cirkelklasse zou dan eenvoudig aangepast kunnen worden om toch in plaats van de diameter intern de straal op te slaan, zonder dat de gebruiker van de cirkelklasse dit hoeft te weten: de publieke toegang tot de klasse is immers niet veranderd.
+
+Encapsulation gaat niet enkel over het wegnemen van de implementatie-details voor de gebruiker van de klasse, maar ook over het bewaken van state.
+
+En dan komen er Object Relational Managers (ORM's) zoals Entity Framework, nHibernate, Dapper,... en vergeten we deze regel en wordt onze code als volgt:
+
+```c#
+public class Car
 {
-  "orderId": "a47dced5-a2fc-431a-bdda-6bf4ac665bbe",
-  "clientId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-  "orderStateId": "bd8be3d2-8028-45e2-a211-bf737a2508c1",
-  "orderDate": "2021-02-22T19:45:32.6606407",
-  "totalAmount": 6430,
-  "paidAmount": 0,
-  "state": "NEW",
-  "orderlines": [
-    {
-      "orderlineId": "4b9ec976-0197-4231-84e0-7c6c7d37a759",
-      "productId": "de679c55-4c13-4fe7-91b4-69cbce3223a2",
-      "price": 169,
-      "qty": 20
-    },
-    {
-      "orderlineId": "03f03028-638d-4f58-9f83-9fafc167cff9",
-      "productId": "bcbc1851-6317-4022-be62-53d29c04bcda",
-      "price": 305,
-      "qty": 10
-    }
-  ]
+	public int Speed { get; set; }
 }
 ```
 
-We kunnen de order bevestigen door Order/a47dced5-a2fc-431a-bdda-6bf4ac665bbe/confirm uit te voeren, met als volgende response:
+En kunnen we van elke plaats het volgende doen:
 
-```json
+```c#
+var car = new Car();
+car.Speed = -9999;
+```
+
+In DDD spreken we hier van een anemic domain model [2], een model met bloedarmoede, betekenende dat er geen behavior is gedefinieerd in het model. 
+En zoals Martin Fowler het verwoordt:
+
+> The fundamental horror of this anti-pattern is that it's so contrary to the basic idea of object-oriented design; which is to combine data and process together.
+
+## Buyyu project
+
+We gaan nu de eerste aanpassingen doen in het project. We zouden kunnen nadenken over de behavior die nodig is en de methods gaan definiëren, gelijklopende als deze nu in de business logic laag zitten. Maar aangezien we dit al hebben, gaan we een andere manier proberen.
+
+De eerste stap zal zijn om de setters van onze domain modellen private te zetten. Dit gaat een hele reeks fouten opleveren. In het Data project pas ik dus bijvoorbeeld Order.cs aan als volgt:
+
+```c#
+using System;
+using System.Collections.Generic;
+
+namespace buyyu.Data
 {
-  "orderId": "a47dced5-a2fc-431a-bdda-6bf4ac665bbe",
-  "clientId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-  "orderStateId": "82d9ce01-9f25-48b1-8af3-93f52426676f",
-  "orderDate": "2021-02-22T19:47:07.0611767",
-  "totalAmount": 6430,
-  "paidAmount": 0,
-  "state": "CNF",
-  "orderlines": [
-    {
-      "orderlineId": "4b9ec976-0197-4231-84e0-7c6c7d37a759",
-      "productId": "de679c55-4c13-4fe7-91b4-69cbce3223a2",
-      "price": 169,
-      "qty": 20
-    },
-    {
-      "orderlineId": "03f03028-638d-4f58-9f83-9fafc167cff9",
-      "productId": "bcbc1851-6317-4022-be62-53d29c04bcda",
-      "price": 305,
-      "qty": 10
-    }
-  ]
+	public class Order
+	{
+		public Guid Id { get; private set; }
+		public Guid ClientId { get; private set; }
+		public Guid OrderStateId { get; private set; }
+		public DateTime OrderDate { get; private set; }
+		public decimal TotalAmount { get; private set; }
+		public decimal PaidAmount { get; private set; }
+
+		public OrderState State { get; private set; }
+		public List<Orderline> Lines { get; private set; }
+		public List<Payment> Payments { get; private set; }
+	}
 }
 ```
 
-Voor de verzending uit te voeren doen we Order/a47dced5-a2fc-431a-bdda-6bf4ac665bbe/ship, met als volgende response:
+Na een build, geeft dit al meteen 19 errors:
 
-```json
+![image-20210223202128421](README.assets/image-20210223202128421.png)
+
+Als we kijken in welke bestanden deze fouten nu voorkomen dan zien we OrderService.cs en OrderServiceTests.cs.  We moeten deze bestanden en Order.cs nu gaan refactoren. 
+
+```c#
+public async Task<OrderDto> CreateOrder(OrderDto orderDto)
 {
-  "orderId": "a47dced5-a2fc-431a-bdda-6bf4ac665bbe",
-  "clientId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-  "orderStateId": "4b5549bb-b1b2-4964-9818-da984baab4ff",
-  "orderDate": "2021-02-22T19:47:07.0611767",
-  "totalAmount": 6430,
-  "paidAmount": 0,
-  "state": "SHP",
-  "orderlines": [
-    {
-      "orderlineId": "4b9ec976-0197-4231-84e0-7c6c7d37a759",
-      "productId": "de679c55-4c13-4fe7-91b4-69cbce3223a2",
-      "price": 169,
-      "qty": 20
-    },
-    {
-      "orderlineId": "03f03028-638d-4f58-9f83-9fafc167cff9",
-      "productId": "bcbc1851-6317-4022-be62-53d29c04bcda",
-      "price": 305,
-      "qty": 10
-    }
-  ]
+	var newOrderState = await _orderStateRepository.GetOrderStateByCode(NEWSTATECODE);
+
+	var newOrder = new Order
+	{
+		ClientId = orderDto.ClientId,
+		OrderStateId = newOrderState.Id,
+		OrderDate = DateTime.Now,
+		PaidAmount = 0,
+		Lines = new List<Orderline>()
+	};
+	await ProcessOrderLines(orderDto, newOrder);
+
+	await _orderRepository.Save(newOrder);
+
+	return await GetOrder(newOrder.Id);
 }
 ```
 
-Tenslotte wordt een betaling als volgt in gegeven: Order/a47dced5-a2fc-431a-bdda-6bf4ac665bbe/pay met als body 6430, en volgende response wordt ontvangen:
 
-```json
+
+Regel 5 tem 12 geven fouten omdat we trachten properties aan te passen die private setters hebben. We zouden voor deze stap een contructor kunnen maken die deze parameters aanneemt en een nieuw object van Order terug geeft. Echter, een betere manier is te werken met een factory method. Zodus, voor Order.cs maken de volgende static method aan:
+
+```c#
+public static Order Create(
+	Guid clientId,
+	Guid orderStateId)
 {
-  "orderId": "a47dced5-a2fc-431a-bdda-6bf4ac665bbe",
-  "clientId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-  "orderStateId": "4b5549bb-b1b2-4964-9818-da984baab4ff",
-  "orderDate": "2021-02-22T19:47:07.0611767",
-  "totalAmount": 6430,
-  "paidAmount": 6430,
-  "state": "SHP",
-  "orderlines": [
-    {
-      "orderlineId": "4b9ec976-0197-4231-84e0-7c6c7d37a759",
-      "productId": "de679c55-4c13-4fe7-91b4-69cbce3223a2",
-      "price": 169,
-      "qty": 20
-    },
-    {
-      "orderlineId": "03f03028-638d-4f58-9f83-9fafc167cff9",
-      "productId": "bcbc1851-6317-4022-be62-53d29c04bcda",
-      "price": 305,
-      "qty": 10
-    }
-  ]
+	if (clientId == null || clientId == Guid.Empty)
+	{
+		throw new ArgumentNullException(nameof(clientId), "ClientId cannot be empty");
+	}
+	if (orderStateId == null || orderStateId == Guid.Empty)
+	{
+		throw new ArgumentNullException(nameof(orderStateId), "OrderStateId cannot be empty");
+	}
+
+	var order = new Order
+	{
+		ClientId = clientId,
+		OrderStateId = orderStateId,
+		OrderDate = DateTime.Now,
+		PaidAmount = 0,
+		Lines = new List<Orderline>()
+	};
+
+	return order;
 }
 ```
+
+We geven voorlopig nog de status id (orderStateId) mee, maar in een latere stap gaan we dit aanpassen.
+
+Om het op dit ogenblik makkelijker te maken, maken we een aparte functie aan om orderlines toe te voegen.
+
+```c#
+public void AddOrderLine(Guid productId, decimal price, int qty)
+{
+	if (productId == null || productId == Guid.Empty)
+	{
+		throw new ArgumentNullException(nameof(productId), "ProductId cannot be empty");
+	}
+
+	if (Lines.Any(ol => ol.ProductId == productId))
+	{
+		throw new InvalidOperationException("Product is already added");
+	}
+	if (qty <= 0)
+	{
+		throw new ArgumentNullException(nameof(qty), "Qty must be a positive integer");
+	}
+
+
+	Lines.Add(new Orderline() { Price = price, ProductId = productId, Qty = qty });
+}
+```
+
+De CreateOrder method in de OrderService kunnen we nu als volgt aanpassen:
+
+```c#
+public async Task<OrderDto> CreateOrder(OrderDto orderDto)
+{
+	var newOrderState = await _orderStateRepository.GetOrderStateByCode(NEWSTATECODE);
+
+	var newOrder = Order.Create(orderDto.ClientId, newOrderState.Id);
+	foreach (var orderline in orderDto.Orderlines)
+	{
+		var product = await _productRepository.GetProduct(orderline.ProductId);
+		newOrder.AddOrderLine(product.Id, product.Price, orderline.Qty);
+	}
+
+	await _orderRepository.Save(newOrder);
+
+	return await GetOrder(newOrder.Id);
+}
+```
+
+Op dezelfde manier kunnen de andere methods van OrderService verplaatst worden naar de Order class.
+
+## Unit testen
+
+Na het aanpassen van de OrderService en de Order class, blijven er nog errors over in onze unit test, meer bepaalt CreateOrder_OrderWithTwoProducts_OrderUpdated waar we nu geen waarden aan ons object kunnen toewijzen vanwege de private setters.
+
+Deze code block moeten we dus aanpakken:
+
+```c#
+var newOrder = new Order
+{
+	ClientId = Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
+	Id = inDto.OrderId,
+	Lines = new List<Orderline>
+	{
+		new Orderline
+		{
+			Id = Guid.Parse("fc0e1862-21c3-4cd0-ae9c-e02986b8f283"),
+			Order = null,
+			OrderId = Guid.Empty,
+			Price = 295.00m,
+			Product = null,
+			ProductId = Guid.Parse("5ca659b1-25b1-45c1-9755-3a3cd8591b9e"),
+			Qty = 10
+		},
+		new Orderline
+		{
+			Id = Guid.Parse("3510659d-d3c0-43bf-aca5-d2bbede87685"),
+			Order = null,
+			OrderId = Guid.Empty,
+			Price = 263.00m,
+			Product = null,
+			ProductId = Guid.Parse("32f75bce-16a0-4070-9fac-4289678c191f"),
+			Qty = 20
+		}
+	},
+	OrderDate = new DateTime(2021, 2, 19, 17, 26, 57),
+	OrderStateId = Guid.Parse("bd8be3d2-8028-45e2-a211-bf737a2508c1"),
+	PaidAmount = 0m,
+	Payments = new List<Payment>(),
+	State = NewOrderState,
+	TotalAmount = 8210.00m
+};
+```
+
+Wat zijn onze mogelijkheden?
+
+- Met Moq, kunnen we via SetupGet een waarde toewijzen aan onze property. Echter kunnen we de waarde daarna niet meer wijzigen, en bovendien moeten we de properties virtual markeren. Dit is niet gewenst.
+- Er kan gewerkt worden met reflection om waarden toe te wijzen aan private setters:
+
+```c#
+var t = typeof(Order);
+var newOrder = (Order)Activator.CreateInstance(t);
+typeof(Order).GetProperty(nameof(newOrder.ClientId)).SetValue(newOrder, Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6"));
+typeof(Order).GetProperty(nameof(newOrder.Id)).SetValue(newOrder, orderId);
+typeof(Order).GetProperty(nameof(newOrder.OrderDate)).SetValue(newOrder, new DateTime(2021, 2, 19, 17, 26, 57));
+typeof(Order).GetProperty(nameof(newOrder.OrderStateId)).SetValue(newOrder, newOrderState.Id);
+typeof(Order).GetProperty(nameof(newOrder.PaidAmount)).SetValue(newOrder, 0m);
+typeof(Order).GetProperty(nameof(newOrder.Payments)).SetValue(newOrder, new List<Payment>());
+typeof(Order).GetProperty(nameof(newOrder.State)).SetValue(newOrder, newOrderState);
+typeof(Order).GetProperty(nameof(newOrder.TotalAmount)).SetValue(newOrder, 8210.00m);
+
+typeof(Order).GetProperty(nameof(newOrder.Lines)).SetValue(newOrder, new List<Orderline>
+{
+	new Orderline
+	{
+		Id = Guid.Parse("fc0e1862-21c3-4cd0-ae9c-e02986b8f283"),
+		Order = null,
+		OrderId = Guid.Empty,
+		Price = 295.00m,
+		Product = null,
+		ProductId = Guid.Parse("5ca659b1-25b1-45c1-9755-3a3cd8591b9e"),
+		Qty = 10
+	},
+	new Orderline
+	{
+		Id = Guid.Parse("3510659d-d3c0-43bf-aca5-d2bbede87685"),
+		Order = null,
+		OrderId = Guid.Empty,
+		Price = 263.00m,
+		Product = null,
+		ProductId = Guid.Parse("32f75bce-16a0-4070-9fac-4289678c191f"),
+		Qty = 20
+	}
+});
+```
+
+- Of er kan gewerkt worden met het opbouwen van een object door zijn geschiedenis af te spelen. Deze methode heeft de voorkeur in het licht van Event Sourcing, wat later zal besproken worden. Echter stoten we hier op een probleem, zijnde we laten de database de ID's zetten. Het probleem hiermee is dat we business logica hebben verplaatst naar de database. Beter was geweest om onze applicatie de ID te laten zetten. Denk ook aan Stored Procedures en triggers die data gaan wijzigen buiten de applicatie om en aan onze opzet voor Clean Architecture. Voorlopig passen we de gegevens die gezet worden in de database aan, met reflection, maar later gaan we die functionaliteit verhuizen naar code.
+
+```c#
+public static Order NewOrderWithTwoProducts(Guid orderId, OrderState newOrderState)
+{
+	var newOrder = Order.Create(Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6"), newOrderState.Id);
+	newOrder.AddOrderline(Guid.Parse("5ca659b1-25b1-45c1-9755-3a3cd8591b9e"), 295.00m, 10);
+	newOrder.AddOrderline(Guid.Parse("32f75bce-16a0-4070-9fac-4289678c191f"), 263, 20);
+
+	var t = typeof(Order);
+	typeof(Order).GetProperty(nameof(newOrder.Id)).SetValue(newOrder, orderId);
+	typeof(Order).GetProperty(nameof(newOrder.State)).SetValue(newOrder, newOrderState);
+
+	return newOrder;
+}
+```
+
+Om onze unit tests kleiner te maken, gaan we de code voor het opbouwen van onze objecten verhuizen naar een builder helper class.
 
 ## Taken
 
-1. Speel met de applicatie via Swagger UI of Postman om er bekend mee te raken. Niet alle scenario's zijn afgedekt, indien er zich een fout voordoet, voel u vrij om correcties aan te brengen.
-2. Bekijk de code, waar wordt wat aangeroepen.
-3. Voer de unit testen uit.
+1. Pas nu alle andere domain entiteiten aan zodat deze voldoen aan de encapsulation regels uitgelegd in dit hoofdstuk.
+2. Pas de unit tests aan zodat deze werkende blijven.
+3. Test of de applicatie nog werkt zoals voorheen
 
 ## Volgende stap
 
-We gaan dit project nu stap voor stap verbeteren. In de volgende stap gaan we encapsulation inbouwen via private setters en methods verplaatsen van de service naar onze domain objecten. Dit heeft nog een aantal andere implicaties zoals hoe we de unit testen moeten mocken.
+In de volgende stap gaan we meer technische componenten van DDD inbouwen zoals een aggregate root, valueobjects en invariants.
+
+## Referenties
+
+[1]: https://nl.wikipedia.org/wiki/Objectgeori%C3%ABnteerd#Inkapselen_van_data_(encapsulatie)	"Objectgeoriënteerd (encapsulatie)"
+[2]: https://www.martinfowler.com/bliki/AnemicDomainModel.html	"AnemicDomainModel (Martin Fowler - 2003)"
+

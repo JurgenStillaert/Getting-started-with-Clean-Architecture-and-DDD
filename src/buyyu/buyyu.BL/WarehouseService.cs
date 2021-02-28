@@ -18,7 +18,7 @@ namespace buyyu.BL
 		{
 			var product = await _productRepository.GetProduct(productId);
 
-			product.QtyInStock += 200;
+			product.AddStock(200);
 
 			await _productRepository.Save(product);
 		}
@@ -27,7 +27,7 @@ namespace buyyu.BL
 		{
 			var product = await _productRepository.GetProduct(productId);
 
-			product.QtyInStock -= qty;
+			product.ReduceStock(qty);
 
 			await _productRepository.Save(product);
 

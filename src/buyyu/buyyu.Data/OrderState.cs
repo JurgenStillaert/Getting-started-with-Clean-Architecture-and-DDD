@@ -4,8 +4,16 @@ namespace buyyu.Data
 {
 	public class OrderState
 	{
-		public Guid Id { get; set; }
-		public string Name { get; set; }
-		public string ShortCode { get; set; }
+		//For now, we use a simple contsructor for this reference class
+		public OrderState(Guid id, string name, string shortCode)
+		{
+			Id = id;
+			Name = name;
+			ShortCode = shortCode;
+		}
+
+		public Guid Id { get; private set; }
+		public string Name { get; private set; }
+		public string ShortCode { get; private set; }
 	}
 }
