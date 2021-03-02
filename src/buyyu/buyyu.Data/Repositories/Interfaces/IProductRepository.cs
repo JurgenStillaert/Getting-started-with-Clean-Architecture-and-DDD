@@ -1,4 +1,5 @@
-﻿using buyyu.Models;
+﻿using buyyu.Domain.Product;
+using buyyu.Models;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -8,7 +9,7 @@ namespace buyyu.Data.Repositories.Interfaces
 	public interface IProductRepository
 	{
 		Task<List<ProductDto>> GetAllProducts();
-		Task<Product> GetProduct(Guid productId);
-		Task<Product> Save(Product product);
+		Task<ProductRoot> GetProduct(Guid productId);
+		Task<ProductRoot> Save(ProductRoot product);
 	}
 }

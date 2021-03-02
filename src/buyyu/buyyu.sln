@@ -9,9 +9,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "buyyu.BL", "buyyu.BL\buyyu.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "buyyu.Data", "buyyu.Data\buyyu.Data.csproj", "{1181C57B-1AB1-4742-BA6B-6224DBF87188}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "buyyu.Models", "buyyu.Models\buyyu.Models.csproj", "{F83DF859-414C-4BB3-9480-66F3A694A06F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "buyyu.Models", "buyyu.Models\buyyu.Models.csproj", "{F83DF859-414C-4BB3-9480-66F3A694A06F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "buyyu.Tests", "buyyu.Tests\buyyu.Tests.csproj", "{22CBF7CE-359A-469A-B896-FDF6AE8DAE6D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "buyyu.Tests", "buyyu.Tests\buyyu.Tests.csproj", "{22CBF7CE-359A-469A-B896-FDF6AE8DAE6D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "buyyu.Domain", "buyyu.Domain\buyyu.Domain.csproj", "{8CFFC9EC-54E1-497E-A3D6-830F0D82EEB0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "buyyu.DDD", "buyyu.DDD\buyyu.DDD.csproj", "{46973517-AF49-4B56-93B7-68F719220EC2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,6 +43,14 @@ Global
 		{22CBF7CE-359A-469A-B896-FDF6AE8DAE6D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{22CBF7CE-359A-469A-B896-FDF6AE8DAE6D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{22CBF7CE-359A-469A-B896-FDF6AE8DAE6D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8CFFC9EC-54E1-497E-A3D6-830F0D82EEB0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8CFFC9EC-54E1-497E-A3D6-830F0D82EEB0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8CFFC9EC-54E1-497E-A3D6-830F0D82EEB0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8CFFC9EC-54E1-497E-A3D6-830F0D82EEB0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{46973517-AF49-4B56-93B7-68F719220EC2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{46973517-AF49-4B56-93B7-68F719220EC2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{46973517-AF49-4B56-93B7-68F719220EC2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{46973517-AF49-4B56-93B7-68F719220EC2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

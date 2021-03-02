@@ -1,324 +1,60 @@
-# Encapsulation
+# Domain Driven Design
 
-Laten we even terug gaan naar de eerste keer dat we over Object Oriented Programming geleerd hebben. Daar hebben we geleerd dat er objecten zijn die zowel data als code hebben, een "state" en een "behavior".
+In dit hoofdstuk trachten we drie technische componenten van DDD te implementeren:
 
-Stel, we hebben een auto, en die heeft 2 pedalen: om te versnellen, en om te vertragen.
+1. Aggregate root
+2. Invariants
+3. Value objects
 
-<img src="https://www.leuvenmindgate.be/files/_contentImage/feb.png" alt="Formula Electric Belgium reveals digital design of… | Leuven MindGate" style="zoom: 33%;" />
+Eerst en vooral nog eens benadrukken dat DDD veel breder is dan deze technische implementaties. Het gaat om design, over het modeleren van een probleem naar een oplossing. Het ecosysteem van DDD is door de jaren heen ook stevig gegroeid. Bijvoorbeeld, het is belangrijk dat developers dezelfde duidelijke en ondubbelzinnige taal spreken als de business, daarom is het techno-sociale aspect ook heel belangrijk.
 
-| Gedrag          | State          |
-| --------------- | -------------- |
-| Versnellen(100) | Snelheid = 100 |
-| Vertragen(80)   | Snelheid = 20  |
+Uit het modeleren, bijvoorbeeld door gebruik van Event Storming [1], komen een aantal Bounded Contexten te voorschijn. Binnen deze Bounded Context spreekt men eenzelfde taal, die kan verschillen van een andere Bounded Context ook al is die in dezelfde oplossing opgenomen. Bijvoorbeeld: als je een koffie besteld in Rome krijg je wellicht een straffe koffie in een kleine tas, terwijl je in New York een grote beker met zoetere koffie krijgt. Of dichter bij huis, het verschil van het woord bank en zetel bij Vlamingen en Nederlanders. Met andere woorden, taal heeft zijn grenzen.
+Een product voor de marketing afdeling is voor hun alles wat gerelateerd is met de product catalogus, terwijl voor de pricing manager enkel de prijs telt, en voor de magazijnier hoeveel items van dat product nog in stock zijn.
+Vertaald naar het technische spreken we niet meer van een Bounded Context, maar van een Aggregate. Deze Aggregate bestaat uit één of meerdere domain entities die als het ware aan elkaar hangen. Per Aggregate is er ook één Aggregate Root. In principe gebeuren alle acties in een Aggregate, altijd via de Aggregate Root. 
+In ons model hebben we een Order en verschillende Orderlines die daaronder hangen. Een Orderline kan niet bestaan zonder een Order en als we een Orderline willen toevoegen, aanpassen of verwijderen, dan gaan we de dit altijd doen via de Order en nooit rechtstreeks op de Orderline.
 
-In code zouden we dit als volgt kunnen schrijven:
+Een belangrijke taak van de Aggregate Root is ook om te controleren of hij altijd in een valid state is. Als bijvoorbeeld de Order status aangepast wordt naar confirmed, dan moéten er Orderlines zijn. Deze validatieregels zijn direct te mappen met de business rules, en daarom horen ze ook thuis in de Aggregate Root en we noemen ze Invariants. 
+Deze regels worden ook in de front-end afgedwongen.
+Er zijn ook regels die buiten de context vallen, zoals de controle of er wel genoeg stock aanwezig is vooraleer een Order kan verzonden worden. Deze kunnen perfect een laag hoger afgedwongen worden, aangezien dit ook deel uitmaakt van DDD. 
 
-```c#
-public class Car
-{
-	public int Speed { get; private set; }
+Soms zijn er validatieregels die zeer gericht zijn tot één property. Soms is zijn er ook properties die een groep kunnen zijn, zoals Streetname, Housenumber, PostalCode en City wat kan samengenomen worden tot Address. Voor deze (en meer) gevallen, kan je gebruik maken van Value objects. In tegenstelling tot domain entiteiten die een identity property hebben (vb ID), hebben Value objects geen identity property. Hun identiteit wordt verkregen door hun waarde. Bijvoorbeeld: 5 euro is 5 euro. De eerste 5 euro echter is samengesteld door 5 stukken van 1 euro, en de tweede 5 euro is een biljet van 5 euro. 
+Value objects zijn ook immutable en we maken ze aan via een factory method, waar we al validaties kunnen uitvoeren.
 
-	public void Accelerate(int speedUp)
-	{
-		if (Speed + speedUp > 120)
-		{
-			Speed = 120;
-		}
-		else
-		{
-			Speed += speedUp;
-		}
-	}
-
-	public void SlowDown(int speedDown)
-	{
-		if (Speed - speedDown < 0)
-		{
-			Speed = 0;
-		}
-		else
-		{
-			Speed -= speedDown;
-		}
-	}
-}
-```
-
-We regelen de snelheid via de methodes die beschikbaar zijn, en doen bovendien nog enkele controles om zeker te zijn dat we geen snelheidsboete krijgen of dat we geen negatieve snelheid hebben.
-
-We leerden ook dat er 4 pijlers zijn bij OOP:
-
-1. Inheritance
-2. Abstraction
-3. Polymorpism
-4. en Encapsulation
-
-Op Wikipedia [1] lezen we:
-
-> Objecten vormen de koppeling tussen enerzijds gegevens en anderzijds bewerkingen die op die gegevens worden uitgevoerd. We spreken van [inkapselen](https://nl.wikipedia.org/wiki/Encapsulatie) of *encapsulatie* als andere programma-eenheden de gegevens niet rechtstreeks aanspreken, maar wel via de tussenlaag van een bewerking. Programmeurs die een object gebruiken hoeven zich slechts bewust te zijn van de interface van dat object, terwijl de implementatie alleen een zaak is van de programmeurs die het object ontwikkelen.[[3\]](https://nl.wikipedia.org/wiki/Objectgeoriënteerd#cite_note-Stiller-3)
->
-> Bij klasse-gebaseerde talen betekent encapsulatie dat de programmeur die een object van een klasse gebruikt, niet hoeft na te denken over de interne werking van die klasse. Een cirkelklasse kan bijvoorbeeld zijn [attribuut](https://nl.wikipedia.org/wiki/Attribuut_(informatica)) "`diameter`" niet publiek maken maar de verschillende [methoden](https://nl.wikipedia.org/wiki/Methode_(objectoriëntatie)) om de oppervlakte op te vragen of de diameter te veranderen wel. De cirkelklasse zou dan eenvoudig aangepast kunnen worden om toch in plaats van de diameter intern de straal op te slaan, zonder dat de gebruiker van de cirkelklasse dit hoeft te weten: de publieke toegang tot de klasse is immers niet veranderd.
-
-Encapsulation gaat niet enkel over het wegnemen van de implementatie-details voor de gebruiker van de klasse, maar ook over het bewaken van state.
-
-En dan komen er Object Relational Managers (ORM's) zoals Entity Framework, nHibernate, Dapper,... en vergeten we deze regel en wordt onze code als volgt:
-
-```c#
-public class Car
-{
-	public int Speed { get; set; }
-}
-```
-
-En kunnen we van elke plaats het volgende doen:
-
-```c#
-var car = new Car();
-car.Speed = -9999;
-```
-
-In DDD spreken we hier van een anemic domain model [2], een model met bloedarmoede, betekenende dat er geen behavior is gedefinieerd in het model. 
-En zoals Martin Fowler het verwoordt:
-
-> The fundamental horror of this anti-pattern is that it's so contrary to the basic idea of object-oriented design; which is to combine data and process together.
+Hoog tijd om deze concepten toe te passen in ons project.
 
 ## Buyyu project
 
-We gaan nu de eerste aanpassingen doen in het project. We zouden kunnen nadenken over de behavior die nodig is en de methods gaan definiëren, gelijklopende als deze nu in de business logic laag zitten. Maar aangezien we dit al hebben, gaan we een andere manier proberen.
+### Aanmaak domain project
 
-De eerste stap zal zijn om de setters van onze domain modellen private te zetten. Dit gaat een hele reeks fouten opleveren. In het Data project pas ik dus bijvoorbeeld Order.cs aan als volgt:
+Momenteel bevat het data project zowel de domain entities als de DbContext. Deze laatste is infrastructure, de link tussen onze code en de database. Daarom is het beter om dit apart te trekken, en we maken hiertoe een nieuw project buyyu.Domain aan.
 
-```c#
-using System;
-using System.Collections.Generic;
+Als we kijken naar het project, kunnen we de volgende Bounded Contexten onderscheiden:
 
-namespace buyyu.Data
-{
-	public class Order
-	{
-		public Guid Id { get; private set; }
-		public Guid ClientId { get; private set; }
-		public Guid OrderStateId { get; private set; }
-		public DateTime OrderDate { get; private set; }
-		public decimal TotalAmount { get; private set; }
-		public decimal PaidAmount { get; private set; }
+- Order
+- Product
+- Warehouse
+- Payment
 
-		public OrderState State { get; private set; }
-		public List<Orderline> Lines { get; private set; }
-		public List<Payment> Payments { get; private set; }
-	}
-}
-```
+We maken hiervoor folders aan in het nieuwe project.
 
-Na een build, geeft dit al meteen 19 errors:
+![image-20210228133351058](README.assets/image-20210228133351058.png)
 
-![image-20210223202128421](README.assets/image-20210223202128421.png)
+Even een herinnering dat we enkel Order hebben uitgewerkt. De andere Bounded Contexten zijn niet helemaal uitgewerkt. Je kan je inbeelden dat we onze producten catalogus willen uitbreiden of aanpassen, terwijl we nu enkel deze bevragen.
 
-Als we kijken in welke bestanden deze fouten nu voorkomen dan zien we OrderService.cs en OrderServiceTests.cs.  We moeten deze bestanden en Order.cs nu gaan refactoren. 
+Verplaats nu de domain entities van het data project naar de juiste mappen en pas de namespaces en referenties aan. Wat ik ook meestal doe, is de class dat als root gaat fungeren postfixen met 'Root', zodat het meteen opvalt, en ook zodat we namespace volgens de mappenstructuur kunnen behouden.
 
-```c#
-public async Task<OrderDto> CreateOrder(OrderDto orderDto)
-{
-	var newOrderState = await _orderStateRepository.GetOrderStateByCode(NEWSTATECODE);
+![image-20210228134740936](README.assets/image-20210228134740936.png)
 
-	var newOrder = new Order
-	{
-		ClientId = orderDto.ClientId,
-		OrderStateId = newOrderState.Id,
-		OrderDate = DateTime.Now,
-		PaidAmount = 0,
-		Lines = new List<Orderline>()
-	};
-	await ProcessOrderLines(orderDto, newOrder);
+Warehouse is momenteel nog leeg en dit gaan we momenteel zo laten. Ook is er nog een probleem tussen Payment, wat in het bedrijf geregeld wordt door het financiële departement, en Order, wat geregeld wordt door de order desk. Order heeft namelijk een lijst van Payments, en een PaidAmount. De lijst van Payments halen we uit Order en we gaan de werking ervan ook wat aanpassen in de volgende stappen.
+We merken nu dat uitgaande van ons database design als start, we nu onze implementatie van DDD niet volledig kunnen doen. We hebben ProductRoot als referentie in onze Order, dus we zijn momenteel verplicht om "te mixen".
 
-	await _orderRepository.Save(newOrder);
-
-	return await GetOrder(newOrder.Id);
-}
-```
+### DDD root base class
 
 
-
-Regel 5 tem 12 geven fouten omdat we trachten properties aan te passen die private setters hebben. We zouden voor deze stap een contructor kunnen maken die deze parameters aanneemt en een nieuw object van Order terug geeft. Echter, een betere manier is te werken met een factory method. Zodus, voor Order.cs maken de volgende static method aan:
-
-```c#
-public static Order Create(
-	Guid clientId,
-	Guid orderStateId)
-{
-	if (clientId == null || clientId == Guid.Empty)
-	{
-		throw new ArgumentNullException(nameof(clientId), "ClientId cannot be empty");
-	}
-	if (orderStateId == null || orderStateId == Guid.Empty)
-	{
-		throw new ArgumentNullException(nameof(orderStateId), "OrderStateId cannot be empty");
-	}
-
-	var order = new Order
-	{
-		ClientId = clientId,
-		OrderStateId = orderStateId,
-		OrderDate = DateTime.Now,
-		PaidAmount = 0,
-		Lines = new List<Orderline>()
-	};
-
-	return order;
-}
-```
-
-We geven voorlopig nog de status id (orderStateId) mee, maar in een latere stap gaan we dit aanpassen.
-
-Om het op dit ogenblik makkelijker te maken, maken we een aparte functie aan om orderlines toe te voegen.
-
-```c#
-public void AddOrderLine(Guid productId, decimal price, int qty)
-{
-	if (productId == null || productId == Guid.Empty)
-	{
-		throw new ArgumentNullException(nameof(productId), "ProductId cannot be empty");
-	}
-
-	if (Lines.Any(ol => ol.ProductId == productId))
-	{
-		throw new InvalidOperationException("Product is already added");
-	}
-	if (qty <= 0)
-	{
-		throw new ArgumentNullException(nameof(qty), "Qty must be a positive integer");
-	}
-
-
-	Lines.Add(new Orderline() { Price = price, ProductId = productId, Qty = qty });
-}
-```
-
-De CreateOrder method in de OrderService kunnen we nu als volgt aanpassen:
-
-```c#
-public async Task<OrderDto> CreateOrder(OrderDto orderDto)
-{
-	var newOrderState = await _orderStateRepository.GetOrderStateByCode(NEWSTATECODE);
-
-	var newOrder = Order.Create(orderDto.ClientId, newOrderState.Id);
-	foreach (var orderline in orderDto.Orderlines)
-	{
-		var product = await _productRepository.GetProduct(orderline.ProductId);
-		newOrder.AddOrderLine(product.Id, product.Price, orderline.Qty);
-	}
-
-	await _orderRepository.Save(newOrder);
-
-	return await GetOrder(newOrder.Id);
-}
-```
-
-Op dezelfde manier kunnen de andere methods van OrderService verplaatst worden naar de Order class.
 
 ## Unit testen
 
-Na het aanpassen van de OrderService en de Order class, blijven er nog errors over in onze unit test, meer bepaalt CreateOrder_OrderWithTwoProducts_OrderUpdated waar we nu geen waarden aan ons object kunnen toewijzen vanwege de private setters.
 
-Deze code block moeten we dus aanpakken:
-
-```c#
-var newOrder = new Order
-{
-	ClientId = Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
-	Id = inDto.OrderId,
-	Lines = new List<Orderline>
-	{
-		new Orderline
-		{
-			Id = Guid.Parse("fc0e1862-21c3-4cd0-ae9c-e02986b8f283"),
-			Order = null,
-			OrderId = Guid.Empty,
-			Price = 295.00m,
-			Product = null,
-			ProductId = Guid.Parse("5ca659b1-25b1-45c1-9755-3a3cd8591b9e"),
-			Qty = 10
-		},
-		new Orderline
-		{
-			Id = Guid.Parse("3510659d-d3c0-43bf-aca5-d2bbede87685"),
-			Order = null,
-			OrderId = Guid.Empty,
-			Price = 263.00m,
-			Product = null,
-			ProductId = Guid.Parse("32f75bce-16a0-4070-9fac-4289678c191f"),
-			Qty = 20
-		}
-	},
-	OrderDate = new DateTime(2021, 2, 19, 17, 26, 57),
-	OrderStateId = Guid.Parse("bd8be3d2-8028-45e2-a211-bf737a2508c1"),
-	PaidAmount = 0m,
-	Payments = new List<Payment>(),
-	State = NewOrderState,
-	TotalAmount = 8210.00m
-};
-```
-
-Wat zijn onze mogelijkheden?
-
-- Met Moq, kunnen we via SetupGet een waarde toewijzen aan onze property. Echter kunnen we de waarde daarna niet meer wijzigen, en bovendien moeten we de properties virtual markeren. Dit is niet gewenst.
-- Er kan gewerkt worden met reflection om waarden toe te wijzen aan private setters:
-
-```c#
-var t = typeof(Order);
-var newOrder = (Order)Activator.CreateInstance(t);
-typeof(Order).GetProperty(nameof(newOrder.ClientId)).SetValue(newOrder, Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6"));
-typeof(Order).GetProperty(nameof(newOrder.Id)).SetValue(newOrder, orderId);
-typeof(Order).GetProperty(nameof(newOrder.OrderDate)).SetValue(newOrder, new DateTime(2021, 2, 19, 17, 26, 57));
-typeof(Order).GetProperty(nameof(newOrder.OrderStateId)).SetValue(newOrder, newOrderState.Id);
-typeof(Order).GetProperty(nameof(newOrder.PaidAmount)).SetValue(newOrder, 0m);
-typeof(Order).GetProperty(nameof(newOrder.Payments)).SetValue(newOrder, new List<Payment>());
-typeof(Order).GetProperty(nameof(newOrder.State)).SetValue(newOrder, newOrderState);
-typeof(Order).GetProperty(nameof(newOrder.TotalAmount)).SetValue(newOrder, 8210.00m);
-
-typeof(Order).GetProperty(nameof(newOrder.Lines)).SetValue(newOrder, new List<Orderline>
-{
-	new Orderline
-	{
-		Id = Guid.Parse("fc0e1862-21c3-4cd0-ae9c-e02986b8f283"),
-		Order = null,
-		OrderId = Guid.Empty,
-		Price = 295.00m,
-		Product = null,
-		ProductId = Guid.Parse("5ca659b1-25b1-45c1-9755-3a3cd8591b9e"),
-		Qty = 10
-	},
-	new Orderline
-	{
-		Id = Guid.Parse("3510659d-d3c0-43bf-aca5-d2bbede87685"),
-		Order = null,
-		OrderId = Guid.Empty,
-		Price = 263.00m,
-		Product = null,
-		ProductId = Guid.Parse("32f75bce-16a0-4070-9fac-4289678c191f"),
-		Qty = 20
-	}
-});
-```
-
-- Of er kan gewerkt worden met het opbouwen van een object door zijn geschiedenis af te spelen. Deze methode heeft de voorkeur in het licht van Event Sourcing, wat later zal besproken worden. Echter stoten we hier op een probleem, zijnde we laten de database de ID's zetten. Het probleem hiermee is dat we business logica hebben verplaatst naar de database. Beter was geweest om onze applicatie de ID te laten zetten. Denk ook aan Stored Procedures en triggers die data gaan wijzigen buiten de applicatie om en aan onze opzet voor Clean Architecture. Voorlopig passen we de gegevens die gezet worden in de database aan, met reflection, maar later gaan we die functionaliteit verhuizen naar code.
-
-```c#
-public static Order NewOrderWithTwoProducts(Guid orderId, OrderState newOrderState)
-{
-	var newOrder = Order.Create(Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6"), newOrderState.Id);
-	newOrder.AddOrderline(Guid.Parse("5ca659b1-25b1-45c1-9755-3a3cd8591b9e"), 295.00m, 10);
-	newOrder.AddOrderline(Guid.Parse("32f75bce-16a0-4070-9fac-4289678c191f"), 263, 20);
-
-	var t = typeof(Order);
-	typeof(Order).GetProperty(nameof(newOrder.Id)).SetValue(newOrder, orderId);
-	typeof(Order).GetProperty(nameof(newOrder.State)).SetValue(newOrder, newOrderState);
-
-	return newOrder;
-}
-```
-
-Om onze unit tests kleiner te maken, gaan we de code voor het opbouwen van onze objecten verhuizen naar een builder helper class.
 
 ## Taken
 
@@ -332,6 +68,5 @@ In de volgende stap gaan we meer technische componenten van DDD inbouwen zoals e
 
 ## Referenties
 
-[1]: https://nl.wikipedia.org/wiki/Objectgeori%C3%ABnteerd#Inkapselen_van_data_(encapsulatie)	"Objectgeoriënteerd (encapsulatie)"
-[2]: https://www.martinfowler.com/bliki/AnemicDomainModel.html	"AnemicDomainModel (Martin Fowler - 2003)"
+[1]: https://www.eventstorming.com/	"Event Storming (Brandolini)"
 

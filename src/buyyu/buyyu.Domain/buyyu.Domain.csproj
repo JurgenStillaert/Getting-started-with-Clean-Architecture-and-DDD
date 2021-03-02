@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Order\OrderState.cs~RF17285d8f.TMP" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Warehouse\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\buyyu.DDD\buyyu.DDD.csproj" />
+  </ItemGroup>
+
+</Project>

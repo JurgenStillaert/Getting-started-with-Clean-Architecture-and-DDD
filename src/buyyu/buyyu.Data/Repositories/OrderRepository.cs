@@ -1,4 +1,5 @@
 ﻿using buyyu.Data.Repositories.Interfaces;
+using buyyu.Domain.Order;
 using buyyu.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -16,12 +17,11 @@ namespace buyyu.Data.Repositories
 			_context = context;
 		}
 
-		public async Task<Order> GetOrder(Guid orderId)
+		public async Task<OrderRoot> GetOrder(Guid orderId)
 		{
 			return await _context
 				.Orders
 				.Include(order => order.Lines)
-				.Include(order => order.Payments)
 				.Include(order => order.State)
 				.SingleAsync(x => x.Id == orderId);
 		}
@@ -36,21 +36,20 @@ namespace buyyu.Data.Repositories
 					OrderId = order.Id,
 					OrderDate = order.OrderDate,
 					ClientId = order.ClientId,
-					OrderStateId = order.OrderStateId,
-					PaidAmount = order.PaidAmount,
-					TotalAmount = order.TotalAmount,
-					State = order.State.ShortCode,
+					PaidAmount = order.PaidAmount.Amount,
+					TotalAmount = order.TotalAmount.Amount,
+					State = order.State.ToString(),
 					Orderlines = order.Lines.Select(orderline => new OrderDto.OrderlineDto
 					{
 						OrderlineId = orderline.Id,
-						Price = orderline.Price,
+						Price = orderline.Price.Amount,
 						ProductId = orderline.ProductId,
 						Qty = orderline.Qty
 					}).ToList()
 				}).SingleAsync();
 		}
 
-		public async Task Save(Order order)
+		public async Task Save(OrderRoot order)
 		{
 			if (order.Id == null || order.Id == Guid.Empty)
 			{

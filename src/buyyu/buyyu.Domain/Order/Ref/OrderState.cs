@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace buyyu.Data
+namespace buyyu.Domain.Order.Ref
 {
 	public class OrderState
 	{

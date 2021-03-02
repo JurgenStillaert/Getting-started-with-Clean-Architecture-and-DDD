@@ -17,6 +17,8 @@
   <ItemGroup>
     <ProjectReference Include="..\buyyu.BL\buyyu.BL.csproj" />
     <ProjectReference Include="..\buyyu.Data\buyyu.Data.csproj" />
+    <ProjectReference Include="..\buyyu.DDD\buyyu.DDD.csproj" />
+    <ProjectReference Include="..\buyyu.Domain\buyyu.Domain.csproj" />
   </ItemGroup>
 
 </Project>

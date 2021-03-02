@@ -1,5 +1,5 @@
 ﻿using buyyu.BL.Interfaces;
-using buyyu.Data;
+using buyyu.Domain.Order;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 
@@ -14,21 +14,21 @@ namespace buyyu.BL
 			_logger = logger;
 		}
 
-		public async Task SendPaymentConfirmationMail(Order order)
+		public async Task SendPaymentConfirmationMail(OrderRoot order)
 		{
 			_logger.LogInformation("Payment order confirmation");
 
 			return;
 		}
 
-		public async Task SendOrderConfirmationMail(Order order)
+		public async Task SendOrderConfirmationMail(OrderRoot order)
 		{
 			_logger.LogInformation("Sending order confirmation");
 
 			return;
 		}
 
-		public async Task SendOrderShippedMail(Order order)
+		public async Task SendOrderShippedMail(OrderRoot order)
 		{
 			_logger.LogInformation("Shipping order confirmation");
 

@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using buyyu.Domain.Order.Ref;
+using System.Threading.Tasks;
 
 namespace buyyu.Data.Repositories.Interfaces
 {

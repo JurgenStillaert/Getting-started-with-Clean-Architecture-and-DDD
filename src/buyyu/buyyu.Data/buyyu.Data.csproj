@@ -15,6 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\buyyu.Domain\buyyu.Domain.csproj" />
     <ProjectReference Include="..\buyyu.Models\buyyu.Models.csproj" />
   </ItemGroup>
 

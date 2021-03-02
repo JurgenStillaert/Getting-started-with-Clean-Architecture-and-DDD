@@ -7,7 +7,6 @@ namespace buyyu.Models
 	{
 		public Guid OrderId { get; set; }
 		public Guid ClientId { get; set; }
-		public Guid OrderStateId { get; set; }
 		public DateTime OrderDate { get; set; }
 		public decimal TotalAmount { get; set; }
 		public decimal PaidAmount { get; set; }

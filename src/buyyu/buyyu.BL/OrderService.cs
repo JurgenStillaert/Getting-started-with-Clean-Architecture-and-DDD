@@ -1,6 +1,7 @@
 ﻿using buyyu.BL.Interfaces;
-using buyyu.Data;
 using buyyu.Data.Repositories.Interfaces;
+using buyyu.Domain.Order;
+using buyyu.Domain.Shared;
 using buyyu.Models;
 using System;
 using System.Linq;
@@ -13,22 +14,16 @@ namespace buyyu.BL
 		private readonly IMailService _mailService;
 		private readonly IWarehouseService _warehouseService;
 		private readonly IProductRepository _productRepository;
-		private readonly IOrderStateRepository _orderStateRepository;
 		private readonly IOrderRepository _orderRepository;
 
-		private const string NEWSTATECODE = "NEW";
-		private const string CONFIRMEDSTATECODE = "CNF";
-		private const string SHIPPEDSTATECODE = "SHP";
 
 		public OrderService(
 			IOrderRepository orderRepository,
-			IOrderStateRepository orderStateRepository,
 			IProductRepository productRepository,
 			IMailService mailService,
 			IWarehouseService warehouseService)
 		{
 			_orderRepository = orderRepository;
-			_orderStateRepository = orderStateRepository;
 			_productRepository = productRepository;
 			_mailService = mailService;
 			_warehouseService = warehouseService;
@@ -41,13 +36,11 @@ namespace buyyu.BL
 
 		public async Task<OrderDto> CreateOrder(OrderDto orderDto)
 		{
-			var newOrderState = await _orderStateRepository.GetOrderStateByCode(NEWSTATECODE);
-
-			var newOrder = Order.Create(orderDto.ClientId, newOrderState.Id);
+			var newOrder = OrderRoot.Create(OrderId.FromGuid(orderDto.OrderId), ClientId.FromGuid(orderDto.ClientId));
 			foreach (var orderline in orderDto.Orderlines)
 			{
 				var product = await _productRepository.GetProduct(orderline.ProductId);
-				newOrder.AddOrderline(product.Id, product.Price, orderline.Qty);
+				newOrder.AddOrderline(ProductId.FromGuid(product.Id), Money.FromDecimalAndCurrency(product.Price, "EUR"), Quantity.FromInt(orderline.Qty));
 			}
 
 			await _orderRepository.Save(newOrder);
@@ -59,34 +52,29 @@ namespace buyyu.BL
 		{
 			var order = await _orderRepository.GetOrder(id);
 
-			if (order.State.ShortCode != NEWSTATECODE)
-			{
-				throw new Exception("Cannot change a confirmed order");
-			}
-
 			//Remove orderlines
-			var toRemoveOrderlineProducts = order.Lines.Select(ol => ol.ProductId).Except(orderDto.Orderlines.Select(ol => ol.ProductId));
+			var toRemoveOrderlineProducts = order.Lines.Select(ol => ol.ProductId.Value).Except(orderDto.Orderlines.Select(ol => ol.ProductId));
 			foreach (var toRemoveOrderlineProduct in toRemoveOrderlineProducts)
 			{
-				order.RemoveOrderline(toRemoveOrderlineProduct);
+				order.RemoveOrderline(ProductId.FromGuid(toRemoveOrderlineProduct));
 			}
 
 			//Update orderlines
-			var toUpdateOrderlineProducts = orderDto.Orderlines.Select(ol => ol.ProductId).Intersect(order.Lines.Select(ol => ol.ProductId));
+			var toUpdateOrderlineProducts = orderDto.Orderlines.Select(ol => ol.ProductId).Intersect(order.Lines.Select(ol => ol.ProductId.Value));
 			foreach (var toUpdateOrderlineProduct in toUpdateOrderlineProducts)
 			{
 				var dtoOrderline = orderDto.Orderlines.First(ol => ol.ProductId == toUpdateOrderlineProduct);
 				var product = await _productRepository.GetProduct(toUpdateOrderlineProduct);
-				order.UpdateOrderline(product.Id, product.Price, dtoOrderline.Qty);
+				order.UpdateOrderline(ProductId.FromGuid(product.Id), Money.FromDecimalAndCurrency(product.Price, "EUR"), Quantity.FromInt(dtoOrderline.Qty));
 			}
 
 			//Add orderlines
-			var toAddOrderlineProducts = orderDto.Orderlines.Select(ol => ol.ProductId).Except(order.Lines.Select(ol => ol.ProductId));
+			var toAddOrderlineProducts = orderDto.Orderlines.Select(ol => ol.ProductId).Except(order.Lines.Select(ol => ol.ProductId.Value));
 			foreach (var toAddOrderlineProduct in toAddOrderlineProducts)
 			{
 				var dtoOrderline = orderDto.Orderlines.First(ol => ol.ProductId == toAddOrderlineProduct);
 				var product = await _productRepository.GetProduct(toAddOrderlineProduct);
-				order.AddOrderline(product.Id, product.Price, dtoOrderline.Qty);
+				order.AddOrderline(ProductId.FromGuid(product.Id), Money.FromDecimalAndCurrency(product.Price, "EUR"), Quantity.FromInt(dtoOrderline.Qty));
 			}
 
 			await _orderRepository.Save(order);
@@ -104,9 +92,7 @@ namespace buyyu.BL
 				throw new Exception("Order does not have any products and cannot be confirmed");
 			}
 
-			var confirmedOrderState = await _orderStateRepository.GetOrderStateByCode(CONFIRMEDSTATECODE);
-
-			order.Confirm(confirmedOrderState.Id);
+			order.Confirm();
 
 			await _orderRepository.Save(order);
 
@@ -132,9 +118,7 @@ namespace buyyu.BL
 				await ReduceProductStock(orderline);
 			}
 
-			var shippedOrderState = await _orderStateRepository.GetOrderStateByCode(SHIPPEDSTATECODE);
-
-			order.Ship(shippedOrderState.Id);
+			order.Ship();
 
 			await _orderRepository.Save(order);
 
@@ -148,7 +132,7 @@ namespace buyyu.BL
 		{
 			var order = await _orderRepository.GetOrder(id);
 
-			order.ReceivePayment(amount);
+			order.ReceivePayment(Money.FromDecimalAndCurrency(amount, "EUR"));
 
 			await _orderRepository.Save(order);
 

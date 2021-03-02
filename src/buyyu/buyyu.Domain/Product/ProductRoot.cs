@@ -1,11 +1,12 @@
-﻿using System;
+﻿using buyyu.DDD;
+using System;
 
-namespace buyyu.Data
+namespace buyyu.Domain.Product
 {
-	public class Product
+	public class ProductRoot : AggregateRoot<ProductId>
 	{
 		//For now, we use a simple contsructor for this reference class
-		public Product(Guid id, string name, string description, decimal price, int qtyInStock)
+		public ProductRoot(ProductId id, string name, string description, decimal price, int qtyInStock)
 		{
 			Id = id;
 			Name = name;
@@ -14,7 +15,6 @@ namespace buyyu.Data
 			QtyInStock = qtyInStock;
 		}
 
-		public Guid Id { get; private set; }
 		public string Name { get; private set; }
 		public string Description { get; private set; }
 		public decimal Price { get; private set; }
@@ -28,6 +28,11 @@ namespace buyyu.Data
 		public void ReduceStock(int removedItems)
 		{
 			QtyInStock -= removedItems;
+		}
+
+		protected override void EnsureValidation()
+		{
+			throw new NotImplementedException();
 		}
 	}
 }

@@ -1,4 +1,5 @@
 ﻿using buyyu.Data.Repositories.Interfaces;
+using buyyu.Domain.Product;
 using buyyu.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -31,7 +32,7 @@ namespace buyyu.Data.Repositories
 			).ToListAsync();
 		}
 
-		public async Task<Product> Save(Product product)
+		public async Task<ProductRoot> Save(ProductRoot product)
 		{
 			if (product.Id == null || product.Id == Guid.Empty)
 			{
@@ -42,7 +43,7 @@ namespace buyyu.Data.Repositories
 			return product;
 		}
 
-		public async Task<Product> GetProduct(Guid productId)
+		public async Task<ProductRoot> GetProduct(Guid productId)
 		{
 			return await _context.Products.SingleAsync(prd => prd.Id == productId);
 		}

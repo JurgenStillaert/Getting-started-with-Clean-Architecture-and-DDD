@@ -27,6 +27,7 @@ namespace buyyu.web.Controllers
 		[HttpPost]
 		public async Task<OrderDto> CreateOrder(OrderDto order)
 		{
+			order.OrderId = Guid.NewGuid();
 			return await _orderService.CreateOrder(order);
 		}
 
