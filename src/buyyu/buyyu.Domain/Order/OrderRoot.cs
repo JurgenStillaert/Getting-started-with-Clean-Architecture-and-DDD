@@ -8,12 +8,12 @@ namespace buyyu.Domain.Order
 {
 	public class OrderRoot : AggregateRoot<OrderId>
 	{
-		public ClientId ClientId { get; private set; }
-		public OrderDate OrderDate { get; private set; }
-		public Money TotalAmount { get; private set; }
-		public Money PaidAmount { get; private set; }
-		public OrderState State { get; private set; }
-		public List<Orderline> Lines { get; private set; }
+public ClientId ClientId { get; private set; }
+public OrderDate OrderDate { get; private set; }
+public Money TotalAmount { get; private set; }
+public Money PaidAmount { get; private set; }
+public OrderState State { get; private set; }
+public List<Orderline> Lines { get; private set; }
 
 		public static OrderRoot Create(OrderId orderId, ClientId clientId)
 		{
@@ -28,7 +28,7 @@ namespace buyyu.Domain.Order
 				Lines = new List<Orderline>()
 			};
 
-			order.EnsureValidation();
+			order.EnsureValidState();
 
 			return order;
 		}
@@ -49,7 +49,7 @@ namespace buyyu.Domain.Order
 
 			TotalAmount = Money.FromDecimalAndCurrency(Lines.Select(x => x.Price.Amount * x.Qty).Sum(), "EUR");
 
-			EnsureValidation();
+			EnsureValidState();
 		}
 
 		public void UpdateOrderline(ProductId productId, Money price, Quantity qty)
@@ -70,7 +70,7 @@ namespace buyyu.Domain.Order
 
 			TotalAmount = Money.FromDecimalAndCurrency(Lines.Select(x => x.Price.Amount * x.Qty).Sum(), "EUR");
 
-			EnsureValidation();
+			EnsureValidState();
 		}
 
 		public void RemoveOrderline(ProductId productId)
@@ -84,7 +84,7 @@ namespace buyyu.Domain.Order
 
 			TotalAmount = Money.FromDecimalAndCurrency(Lines.Select(x => x.Price.Amount * x.Qty).Sum(), "EUR");
 
-			EnsureValidation();
+			EnsureValidState();
 		}
 
 		public void Confirm()
@@ -97,7 +97,7 @@ namespace buyyu.Domain.Order
 			State = OrderState.FromEnum(OrderState.OrderStateEnum.CNF);
 			OrderDate = OrderDate.Now();
 
-			EnsureValidation();
+			EnsureValidState();
 		}
 
 		public void MarkShipped()
@@ -110,7 +110,7 @@ namespace buyyu.Domain.Order
 			State = OrderState.FromEnum(OrderState.OrderStateEnum.SHP);
 			OrderDate = OrderDate.Now();
 
-			EnsureValidation();
+			EnsureValidState();
 		}
 
 		public void MarkPaid(Money amount)
@@ -122,10 +122,10 @@ namespace buyyu.Domain.Order
 
 			PaidAmount += amount;
 
-			EnsureValidation();
+			EnsureValidState();
 		}
 
-		protected override void EnsureValidation()
+		protected override void EnsureValidState()
 		{
 			var isValid = true;
 

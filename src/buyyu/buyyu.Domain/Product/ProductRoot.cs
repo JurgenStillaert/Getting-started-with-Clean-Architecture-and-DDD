@@ -21,7 +21,7 @@ namespace buyyu.Domain.Product
 			Description = description;
 			Price = price;
 
-			EnsureValidation();
+			EnsureValidState();
 		}
 
 		public ProductName Name { get; private set; }
@@ -29,7 +29,7 @@ namespace buyyu.Domain.Product
 		public Money Price { get; private set; }
 		
 
-		protected override void EnsureValidation()
+		protected override void EnsureValidState()
 		{
 			if (Id == null || Name == null || Description == null || Price == null)
 			{

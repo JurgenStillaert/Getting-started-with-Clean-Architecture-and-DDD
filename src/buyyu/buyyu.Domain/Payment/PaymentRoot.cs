@@ -20,12 +20,12 @@ namespace buyyu.Domain.Payment
 				PayDate = DateTime.Now
 			};
 
-			payment.EnsureValidation();
+			payment.EnsureValidState();
 
 			return payment;
 		}
 
-		protected override void EnsureValidation()
+		protected override void EnsureValidState()
 		{
 			if (PaidAmount == null || PayDate == null || OrderId == null)
 			{
