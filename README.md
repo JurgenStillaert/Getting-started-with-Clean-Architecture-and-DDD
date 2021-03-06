@@ -18,37 +18,32 @@ Deze regels worden ook in de front-end afgedwongen.
 Er zijn ook regels die buiten de context vallen, zoals de controle of er wel genoeg stock aanwezig is vooraleer een Order kan verzonden worden. Deze kunnen perfect een laag hoger afgedwongen worden, aangezien dit ook deel uitmaakt van DDD. 
 
 Soms zijn er validatieregels die zeer gericht zijn tot één property. Soms is zijn er ook properties die een groep kunnen zijn, zoals Streetname, Housenumber, PostalCode en City wat kan samengenomen worden tot Address. Voor deze (en meer) gevallen, kan je gebruik maken van Value objects. In tegenstelling tot domain entiteiten die een identity property hebben (vb ID), hebben Value objects geen identity property. Hun identiteit wordt verkregen door hun waarde. Bijvoorbeeld: 5 euro is 5 euro. De eerste 5 euro echter is samengesteld door 5 stukken van 1 euro, en de tweede 5 euro is een biljet van 5 euro. 
-Value objects zijn ook immutable en we maken ze aan via een factory method, waar we al validaties kunnen uitvoeren.
+Value objects zijn ook immutable en we maken ze aan via een factory method, waar we al validaties kunnen uitvoeren. [2]
 
 Hoog tijd om deze concepten toe te passen in ons project.
 
 ## Buyyu project
 
-### Aanmaak domain project
+### Wat zijn de bounded contexts?
 
-Momenteel bevat het data project zowel de domain entities als de DbContext. Deze laatste is infrastructure, de link tussen onze code en de database. Daarom is het beter om dit apart te trekken, en we maken hiertoe een nieuw project buyyu.Domain aan.
+Als we even terug kijken naar onze applicatie, dan kan je veel meer contexten of groepen van functionaliteit herkennen dan we in de originele opzet gebruiken en onder onze order geplaatst hebben.
 
-Als we kijken naar het project, kunnen we de volgende Bounded Contexten onderscheiden:
+We onderscheiden:
 
-- Order
-- Product
-- Warehouse
-- Payment
-
-We maken hiervoor folders aan in het nieuwe project.
-
-![image-20210228133351058](README.assets/image-20210228133351058.png)
-
-Even een herinnering dat we enkel Order hebben uitgewerkt. De andere Bounded Contexten zijn niet helemaal uitgewerkt. Je kan je inbeelden dat we onze producten catalogus willen uitbreiden of aanpassen, terwijl we nu enkel deze bevragen.
-
-Verplaats nu de domain entities van het data project naar de juiste mappen en pas de namespaces en referenties aan. Wat ik ook meestal doe, is de class dat als root gaat fungeren postfixen met 'Root', zodat het meteen opvalt, en ook zodat we namespace volgens de mappenstructuur kunnen behouden.
-
-![image-20210228134740936](README.assets/image-20210228134740936.png)
-
-Warehouse is momenteel nog leeg en dit gaan we momenteel zo laten. Ook is er nog een probleem tussen Payment, wat in het bedrijf geregeld wordt door het financiële departement, en Order, wat geregeld wordt door de order desk. Order heeft namelijk een lijst van Payments, en een PaidAmount. De lijst van Payments halen we uit Order en we gaan de werking ervan ook wat aanpassen in de volgende stappen.
-We merken nu dat uitgaande van ons database design als start, we nu onze implementatie van DDD niet volledig kunnen doen. We hebben ProductRoot als referentie in onze Order, dus we zijn momenteel verplicht om "te mixen".
+- Order: om de bestelling samen te stellen, te valideren, en op te volgen
+- Product: om de productcatalogus te bekijken
+- Warehouse: om de bestelling uit de stock te halen en te verzenden en stock aan te vullen
+- Payment: om de factuur te betalen
 
 ### DDD root base class
+
+Voor onze entities en aggregate roots hebben we een aantal base classes nodig. Deze zitten in een apart project:
+
+
+
+## 
+
+### Aanmaak domain project
 
 
 
@@ -69,4 +64,5 @@ In de volgende stap gaan we meer technische componenten van DDD inbouwen zoals e
 ## Referenties
 
 [1]: https://www.eventstorming.com/	"Event Storming (Brandolini)"
+[2]: https://docs.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/implement-value-objects	"Implement value objects"
 

@@ -32,18 +32,23 @@ namespace buyyu
 			});
 
 			services.AddDbContext<BuyyuDbContext>(opt =>
-			opt.UseSqlServer(Configuration.GetConnectionString("BuyyuDbContext")));
+			{
+				opt.UseSqlServer(Configuration.GetConnectionString("BuyyuDbContext")).EnableSensitiveDataLogging(true);
+			});
 
 			//Repositories
 			services.AddTransient<IProductRepository, ProductRepository>();
 			services.AddTransient<IOrderRepository, OrderRepository>();
 			services.AddTransient<IOrderStateRepository, OrderStateRepository>();
+			services.AddTransient<IPaymentRepository, PaymentRepository>();
+			services.AddTransient<IWarehouseRepository, WarehouseRepository>();
 
 			//Services
 			services.AddTransient<IProductService, ProductService>();
 			services.AddTransient<IOrderService, OrderService>();
 			services.AddTransient<IMailService, MailService>();
 			services.AddTransient<IWarehouseService, WarehouseService>();
+			services.AddTransient<IPaymentService, PaymentService>();
 		}
 
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

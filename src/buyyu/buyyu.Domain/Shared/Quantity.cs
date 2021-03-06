@@ -24,5 +24,20 @@ namespace buyyu.Domain.Shared
 		public static Quantity Empty() => new Quantity(0);
 
 		public static implicit operator int(Quantity quantity) => quantity.Value;
+
+		public static Quantity operator +(Quantity qty1, Quantity qty2)
+		{
+			return Quantity.FromInt(qty1.Value + qty2.Value);
+		}
+
+		public static Quantity operator -(Quantity qty1, Quantity qty2)
+		{
+			if (qty1.Value - qty2.Value < 0)
+			{
+				throw new InvalidOperationException("Quantity can not be lower than 0");
+			}
+
+			return Quantity.FromInt(qty1.Value - qty2.Value);
+		}
 	}
 }

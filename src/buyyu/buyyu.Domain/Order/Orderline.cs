@@ -5,7 +5,6 @@ namespace buyyu.Domain.Order
 {
 	public class Orderline : Entity<OrderlineId>
 	{
-		public OrderId OrderId { get; private set; }
 		public ProductId ProductId { get; private set; }
 		public Money Price { get; private set; }
 		public Quantity Qty { get; private set; }

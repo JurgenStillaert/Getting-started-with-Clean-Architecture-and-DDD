@@ -23,9 +23,12 @@ namespace buyyu.Domain.Order
 				ClientId = clientId,
 				State = OrderState.FromEnum(OrderState.OrderStateEnum.NEW),
 				OrderDate = OrderDate.Now(),
+				TotalAmount = Money.Empty("EUR"),
 				PaidAmount = Money.Empty("EUR"),
 				Lines = new List<Orderline>()
 			};
+
+			order.EnsureValidation();
 
 			return order;
 		}
@@ -45,6 +48,8 @@ namespace buyyu.Domain.Order
 			Lines.Add(Orderline.Create(OrderlineId.GenerateNew(), productId, price, qty));
 
 			TotalAmount = Money.FromDecimalAndCurrency(Lines.Select(x => x.Price.Amount * x.Qty).Sum(), "EUR");
+
+			EnsureValidation();
 		}
 
 		public void UpdateOrderline(ProductId productId, Money price, Quantity qty)
@@ -64,6 +69,8 @@ namespace buyyu.Domain.Order
 			orderline.Update(price, qty);
 
 			TotalAmount = Money.FromDecimalAndCurrency(Lines.Select(x => x.Price.Amount * x.Qty).Sum(), "EUR");
+
+			EnsureValidation();
 		}
 
 		public void RemoveOrderline(ProductId productId)
@@ -76,6 +83,8 @@ namespace buyyu.Domain.Order
 			Lines.Remove(Lines.First(ol => ol.ProductId == productId));
 
 			TotalAmount = Money.FromDecimalAndCurrency(Lines.Select(x => x.Price.Amount * x.Qty).Sum(), "EUR");
+
+			EnsureValidation();
 		}
 
 		public void Confirm()
@@ -87,9 +96,11 @@ namespace buyyu.Domain.Order
 
 			State = OrderState.FromEnum(OrderState.OrderStateEnum.CNF);
 			OrderDate = OrderDate.Now();
+
+			EnsureValidation();
 		}
 
-		public void Ship()
+		public void MarkShipped()
 		{
 			if (!State.IsConfirmedState())
 			{
@@ -98,9 +109,11 @@ namespace buyyu.Domain.Order
 
 			State = OrderState.FromEnum(OrderState.OrderStateEnum.SHP);
 			OrderDate = OrderDate.Now();
+
+			EnsureValidation();
 		}
 
-		public void ReceivePayment(Money amount)
+		public void MarkPaid(Money amount)
 		{
 			if (State.IsNewState())
 			{
@@ -108,10 +121,29 @@ namespace buyyu.Domain.Order
 			}
 
 			PaidAmount += amount;
+
+			EnsureValidation();
 		}
 
 		protected override void EnsureValidation()
 		{
+			var isValid = true;
+
+			if (Id == null) isValid = false;
+			if (ClientId == null) isValid = false;
+			if (OrderDate == null) isValid = false;
+			if (PaidAmount == null) isValid = false;
+			if (Lines == null) isValid = false;
+
+			if (!State.IsNewState())
+			{
+				if (Lines.Count == 0) isValid = false;
+			}
+
+			if (!isValid)
+			{
+				throw new AggregateRootInvalidStateException();
+			}
 		}
 	}
 }

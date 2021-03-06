@@ -15,7 +15,7 @@ namespace buyyu.Domain.Shared
 		{
 			if (string.IsNullOrEmpty(currency))
 			{
-				throw new ArgumentException($"'{nameof(currency)}' cannot be null or empty", nameof(currency));
+				throw new ArgumentNullException($"'{nameof(currency)}' cannot be null or empty", nameof(currency));
 			}
 
 			Amount = amount;

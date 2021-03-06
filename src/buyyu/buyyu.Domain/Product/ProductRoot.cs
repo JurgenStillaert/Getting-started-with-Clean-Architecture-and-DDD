@@ -1,38 +1,40 @@
 ﻿using buyyu.DDD;
+using buyyu.Domain.Shared;
 using System;
 
 namespace buyyu.Domain.Product
 {
 	public class ProductRoot : AggregateRoot<ProductId>
 	{
+		//Satisfy EF
+		private ProductRoot() {}
+
 		//For now, we use a simple contsructor for this reference class
-		public ProductRoot(ProductId id, string name, string description, decimal price, int qtyInStock)
+		public ProductRoot(
+			ProductId id, 
+			ProductName name, 
+			Description description, 
+			Money price)
 		{
 			Id = id;
 			Name = name;
 			Description = description;
 			Price = price;
-			QtyInStock = qtyInStock;
+
+			EnsureValidation();
 		}
 
-		public string Name { get; private set; }
-		public string Description { get; private set; }
-		public decimal Price { get; private set; }
-		public int QtyInStock { get; private set; }
-
-		public void AddStock(int addedItems)
-		{
-			QtyInStock += addedItems;
-		}
-
-		public void ReduceStock(int removedItems)
-		{
-			QtyInStock -= removedItems;
-		}
+		public ProductName Name { get; private set; }
+		public Description Description { get; private set; }
+		public Money Price { get; private set; }
+		
 
 		protected override void EnsureValidation()
 		{
-			throw new NotImplementedException();
+			if (Id == null || Name == null || Description == null || Price == null)
+			{
+				throw new AggregateRootInvalidStateException();
+			}
 		}
 	}
 }

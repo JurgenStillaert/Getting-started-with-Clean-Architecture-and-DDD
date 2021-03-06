@@ -10,11 +10,18 @@ namespace buyyu.web.Controllers
 	[Route("[controller]")]
 	public class OrderController : ControllerBase
 	{
+		private readonly IPaymentService _paymentService;
+		private readonly IWarehouseService _warehouseService;
 		private readonly IOrderService _orderService;
 
-		public OrderController(IOrderService orderService)
+		public OrderController(
+			IOrderService orderService, 
+			IWarehouseService warehouseService,
+			IPaymentService paymentService)
 		{
 			_orderService = orderService;
+			_warehouseService = warehouseService;
+			_paymentService = paymentService;
 		}
 
 		[HttpGet]
@@ -49,14 +56,14 @@ namespace buyyu.web.Controllers
 		[Route("/{id}/ship")]
 		public async Task<OrderDto> ShipOrder(Guid id)
 		{
-			return await _orderService.ShipOrder(id);
+			return await _warehouseService.ShipOrder(id);
 		}
 
 		[HttpPost]
 		[Route("/{id}/pay")]
 		public async Task<OrderDto> PayOrder(Guid id, decimal amount)
 		{
-			return await _orderService.PayOrder(id, amount);
+			return await _paymentService.PayOrder(id, amount);
 		}
 	}
 }

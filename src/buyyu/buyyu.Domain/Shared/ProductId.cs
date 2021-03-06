@@ -1,7 +1,7 @@
 ﻿using buyyu.DDD;
 using System;
 
-namespace buyyu.Domain.Order
+namespace buyyu.Domain.Shared
 {
 	public class ProductId : Value<ProductId>
 	{

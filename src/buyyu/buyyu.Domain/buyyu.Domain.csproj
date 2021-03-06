@@ -9,10 +9,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Warehouse\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\buyyu.DDD\buyyu.DDD.csproj" />
   </ItemGroup>
 

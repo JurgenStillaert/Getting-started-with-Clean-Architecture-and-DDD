@@ -12,21 +12,17 @@ namespace buyyu.BL
 	public class OrderService : IOrderService
 	{
 		private readonly IMailService _mailService;
-		private readonly IWarehouseService _warehouseService;
 		private readonly IProductRepository _productRepository;
 		private readonly IOrderRepository _orderRepository;
-
 
 		public OrderService(
 			IOrderRepository orderRepository,
 			IProductRepository productRepository,
-			IMailService mailService,
-			IWarehouseService warehouseService)
+			IMailService mailService)
 		{
 			_orderRepository = orderRepository;
 			_productRepository = productRepository;
 			_mailService = mailService;
-			_warehouseService = warehouseService;
 		}
 
 		public async Task<OrderDto> GetOrder(Guid orderId)
@@ -40,10 +36,10 @@ namespace buyyu.BL
 			foreach (var orderline in orderDto.Orderlines)
 			{
 				var product = await _productRepository.GetProduct(orderline.ProductId);
-				newOrder.AddOrderline(ProductId.FromGuid(product.Id), Money.FromDecimalAndCurrency(product.Price, "EUR"), Quantity.FromInt(orderline.Qty));
+				newOrder.AddOrderline(ProductId.FromGuid(product.Id), product.Price, Quantity.FromInt(orderline.Qty));
 			}
 
-			await _orderRepository.Save(newOrder);
+			await _orderRepository.AddSave(newOrder);
 
 			return await GetOrder(newOrder.Id);
 		}
@@ -65,7 +61,7 @@ namespace buyyu.BL
 			{
 				var dtoOrderline = orderDto.Orderlines.First(ol => ol.ProductId == toUpdateOrderlineProduct);
 				var product = await _productRepository.GetProduct(toUpdateOrderlineProduct);
-				order.UpdateOrderline(ProductId.FromGuid(product.Id), Money.FromDecimalAndCurrency(product.Price, "EUR"), Quantity.FromInt(dtoOrderline.Qty));
+				order.UpdateOrderline(ProductId.FromGuid(product.Id), product.Price, Quantity.FromInt(dtoOrderline.Qty));
 			}
 
 			//Add orderlines
@@ -74,7 +70,7 @@ namespace buyyu.BL
 			{
 				var dtoOrderline = orderDto.Orderlines.First(ol => ol.ProductId == toAddOrderlineProduct);
 				var product = await _productRepository.GetProduct(toAddOrderlineProduct);
-				order.AddOrderline(ProductId.FromGuid(product.Id), Money.FromDecimalAndCurrency(product.Price, "EUR"), Quantity.FromInt(dtoOrderline.Qty));
+				order.AddOrderline(ProductId.FromGuid(product.Id), product.Price, Quantity.FromInt(dtoOrderline.Qty));
 			}
 
 			await _orderRepository.Save(order);
@@ -105,21 +101,7 @@ namespace buyyu.BL
 		public async Task<OrderDto> ShipOrder(Guid id)
 		{
 			var order = await _orderRepository.GetOrder(id);
-
-			//Check if the there is enough stock
-			foreach (var orderline in order.Lines)
-			{
-				await CheckProductStock(orderline);
-			}
-
-			//Everything ok, reduce items in stock
-			foreach (var orderline in order.Lines)
-			{
-				await ReduceProductStock(orderline);
-			}
-
-			order.Ship();
-
+			order.MarkShipped();
 			await _orderRepository.Save(order);
 
 			//Send email
@@ -131,29 +113,13 @@ namespace buyyu.BL
 		public async Task<OrderDto> PayOrder(Guid id, decimal amount)
 		{
 			var order = await _orderRepository.GetOrder(id);
-
-			order.ReceivePayment(Money.FromDecimalAndCurrency(amount, "EUR"));
-
+			order.MarkPaid(Money.FromDecimalAndCurrency(amount, "EUR"));
 			await _orderRepository.Save(order);
 
 			//Send email
 			await _mailService.SendPaymentConfirmationMail(order);
 
 			return await GetOrder(order.Id);
-		}
-
-		private async Task ReduceProductStock(Orderline ol)
-		{
-			await _warehouseService.ReduceStock(ol.ProductId, ol.Qty);
-		}
-
-		private async Task CheckProductStock(Orderline orderline)
-		{
-			var product = await _productRepository.GetProduct(orderline.ProductId);
-			if (product.QtyInStock < orderline.Qty)
-			{
-				throw new Exception("Not enough products in stock.");
-			}
 		}
 	}
 }

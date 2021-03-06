@@ -20,14 +20,13 @@ namespace buyyu.Data.Repositories
 
 		public async Task<List<ProductDto>> GetAllProducts()
 		{
-			return await _context.Products.Select(prd =>
+			return await _context.Products.AsNoTracking().Select(prd =>
 				new ProductDto
 				{
 					ProductId = prd.Id,
 					Name = prd.Name,
 					Description = prd.Description,
-					Available = prd.QtyInStock,
-					Price = prd.Price
+					Price = prd.Price.Amount
 				}
 			).ToListAsync();
 		}

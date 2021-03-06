@@ -1,5 +1,7 @@
 ﻿using buyyu.BL.Interfaces;
 using buyyu.Data.Repositories.Interfaces;
+using buyyu.Domain.Shared;
+using buyyu.Models;
 using System;
 using System.Threading.Tasks;
 
@@ -7,34 +9,75 @@ namespace buyyu.BL
 {
 	public class WarehouseService : IWarehouseService
 	{
-		private readonly IProductRepository _productRepository;
+		private readonly IOrderService _orderService;
+		private readonly IOrderRepository _orderRepository;
+		private readonly IWarehouseRepository _warehouseRepository;
 
-		public WarehouseService(IProductRepository productRepository)
+		public WarehouseService(
+			IWarehouseRepository warehouseRepository,
+			IOrderRepository orderRepository,
+			IOrderService orderService)
 		{
-			_productRepository = productRepository;
+			_warehouseRepository = warehouseRepository;
+			_orderRepository = orderRepository;
+			_orderService = orderService;
+		}
+
+		public async Task<OrderDto> ShipOrder(Guid orderId)
+		{
+			var order = await _orderRepository.GetOrderDto(orderId);
+
+			if (order.State != "CNF")
+			{
+				throw new InvalidOperationException("Cannot confirm not confirmed order");
+			}
+
+			foreach (var orderline in order.Orderlines)
+			{
+				await CheckProductStock(orderline);
+			}
+
+			foreach (var orderline in order.Orderlines)
+			{
+				await ReduceStock(orderline.ProductId, orderline.Qty);
+			}
+
+			//Unwanted coupling
+			var orderDto = await _orderService.ShipOrder(order.OrderId);
+
+			return orderDto;
 		}
 
 		public async Task AddStock(Guid productId)
 		{
-			var product = await _productRepository.GetProduct(productId);
+			var warehouse = await _warehouseRepository.GetWarehouseRootByProduct(productId);
 
-			product.AddStock(200);
+			warehouse.AddStock(Quantity.FromInt(200));
 
-			await _productRepository.Save(product);
+			await _warehouseRepository.Save(warehouse);
 		}
 
-		public async Task ReduceStock(Guid productId, int qty)
+		private async Task CheckProductStock(OrderDto.OrderlineDto orderline)
 		{
-			var product = await _productRepository.GetProduct(productId);
+			var productInStock = await _warehouseRepository.CheckProductStock(orderline.ProductId, orderline.Qty);
+			if (!productInStock)
+			{
+				throw new Exception("Not enough products in stock.");
+			}
+		}
 
-			product.ReduceStock(qty);
+		private async Task ReduceStock(Guid productId, int qty)
+		{
+			var warehouse = await _warehouseRepository.GetWarehouseRootByProduct(productId);
 
-			await _productRepository.Save(product);
+			warehouse.ReduceStock(Quantity.FromInt(200));
 
-			if (product.QtyInStock < 100)
+			if (warehouse.QtyInStock < 100)
 			{
 				await AddStock(productId);
 			}
+
+			await _warehouseRepository.Save(warehouse);
 		}
 	}
 }

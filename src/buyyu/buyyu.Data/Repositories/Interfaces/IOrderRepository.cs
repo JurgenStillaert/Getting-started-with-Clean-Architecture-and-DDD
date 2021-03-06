@@ -10,5 +10,6 @@ namespace buyyu.Data.Repositories.Interfaces
 		Task<OrderDto> GetOrderDto(Guid orderId);
 		Task<OrderRoot> GetOrder(Guid orderId);
 		Task Save(OrderRoot newOrder);
+		Task AddSave(OrderRoot newOrder);
 	}
 }

@@ -28,7 +28,7 @@ namespace buyyu.Data.Repositories
 
 		public async Task<OrderDto> GetOrderDto(Guid orderId)
 		{
-			return await _context.Orders
+			return await _context.Orders.AsNoTracking() //AsNoTracking explicit, see https://github.com/dotnet/EntityFramework.Docs/issues/2205
 				.Include(order => order.Lines)
 				.Where(order => order.Id == orderId)
 				.Select(order => new OrderDto
@@ -51,10 +51,12 @@ namespace buyyu.Data.Repositories
 
 		public async Task Save(OrderRoot order)
 		{
-			if (order.Id == null || order.Id == Guid.Empty)
-			{
-				await _context.AddAsync(order);
-			}
+			await _context.SaveChangesAsync();
+		}
+
+		public async Task AddSave(OrderRoot order)
+		{
+			await _context.AddAsync(order);
 			await _context.SaveChangesAsync();
 		}
 	}

@@ -3,6 +3,7 @@ using buyyu.BL.Interfaces;
 using buyyu.Data.Repositories.Interfaces;
 using buyyu.Domain.Order;
 using buyyu.Domain.Product;
+using buyyu.Domain.Shared;
 using buyyu.Tests.Builders;
 using Moq;
 using NUnit.Framework;
@@ -18,7 +19,6 @@ namespace buyyu.Tests
 		private Mock<IOrderRepository> mockOrderRepository;
 		private Mock<IProductRepository> mockProductRepository;
 		private Mock<IMailService> mockMailService;
-		private Mock<IWarehouseService> mockWarehouseService;
 
 		[SetUp]
 		public void Setup()
@@ -26,38 +26,33 @@ namespace buyyu.Tests
 			mockOrderRepository = new Mock<IOrderRepository>();
 			mockProductRepository = new Mock<IProductRepository>();
 			mockMailService = new Mock<IMailService>();
-			mockWarehouseService = new Mock<IWarehouseService>();
 
 			mockProductRepository.Setup(x => x.GetProduct(Guid.Parse("de679c55-4c13-4fe7-91b4-69cbce3223a2"))).ReturnsAsync(new ProductRoot(
-				Domain.Product.ProductId.FromString("de679c55-4c13-4fe7-91b4-69cbce3223a2"),
-				"Office Chair Beta",
-				"Implement an ergonomic seating solution for your office with this maroon multipurpose chair. The included tilt tension knob lets you calibrate the tilt and recline resistance to your desired configuration, while the adjustable seat and armrests optimize your seating position for correct posture.",
-				169,
-				213
+				ProductId.FromString("de679c55-4c13-4fe7-91b4-69cbce3223a2"),
+				ProductName.FromString("Office Chair Beta"),
+				Description.FromString("Implement an ergonomic seating solution for your office with this maroon multipurpose chair. The included tilt tension knob lets you calibrate the tilt and recline resistance to your desired configuration, while the adjustable seat and armrests optimize your seating position for correct posture."),
+				Money.FromDecimalAndCurrency(169, "EUR")
 			));
 
 			mockProductRepository.Setup(x => x.GetProduct(Guid.Parse("32f75bce-16a0-4070-9fac-4289678c191f"))).ReturnsAsync(new ProductRoot(
-				Domain.Product.ProductId.FromString("32f75bce-16a0-4070-9fac-4289678c191f"),
-				"Office Chair Manager",
-				"The Lockland Big & Tall bonded leather managers chair offers top quality comfort, multiple adjustment features.",
-				263,
-				75
+				ProductId.FromString("32f75bce-16a0-4070-9fac-4289678c191f"),
+				ProductName.FromString("Office Chair Manager"),
+				Description.FromString("The Lockland Big & Tall bonded leather managers chair offers top quality comfort, multiple adjustment features."),
+				Money.FromDecimalAndCurrency(263, "EUR")
 			));
 
 			mockProductRepository.Setup(x => x.GetProduct(Guid.Parse("bcbc1851-6317-4022-be62-53d29c04bcda"))).ReturnsAsync(new ProductRoot(
-				Domain.Product.ProductId.FromString("bcbc1851-6317-4022-be62-53d29c04bcda"),
-				"Vintage Desk",
-				"Carve out a personal workspace with this storage desk. The simple design and classic mid-century modern details make this desk perfect for modern decor themes or casual open office settings, and the rectangular desktop provides space for a laptop and peripherals.",
-				305,
-				179
+				ProductId.FromString("bcbc1851-6317-4022-be62-53d29c04bcda"),
+				ProductName.FromString("Vintage Desk"),
+				Description.FromString("Carve out a personal workspace with this storage desk. The simple design and classic mid-century modern details make this desk perfect for modern decor themes or casual open office settings, and the rectangular desktop provides space for a laptop and peripherals."),
+				Money.FromDecimalAndCurrency(305, "EUR")
 			));
 
 			mockProductRepository.Setup(x => x.GetProduct(Guid.Parse("5ca659b1-25b1-45c1-9755-3a3cd8591b9e"))).ReturnsAsync(new ProductRoot(
-				Domain.Product.ProductId.FromString("5ca659b1-25b1-45c1-9755-3a3cd8591b9e"),
-				"Desk Techni",
-				"The Techni Mobili Complete Workstation Desk is everything you need in a computer desk and stay organized.",
-				295,
-				150
+				ProductId.FromString("5ca659b1-25b1-45c1-9755-3a3cd8591b9e"),
+				ProductName.FromString("Desk Techni"),
+				Description.FromString("The Techni Mobili Complete Workstation Desk is everything you need in a computer desk and stay organized."),
+				Money.FromDecimalAndCurrency(295, "EUR")
 			));
 		}
 
@@ -70,8 +65,7 @@ namespace buyyu.Tests
 			var sut = new OrderService(
 				mockOrderRepository.Object,
 				mockProductRepository.Object,
-				mockMailService.Object,
-				mockWarehouseService.Object
+				mockMailService.Object
 				);
 
 			//Act
@@ -109,7 +103,7 @@ namespace buyyu.Tests
 			var outDto = new Models.OrderDto
 			{
 				ClientId = Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
-				OrderId = Guid.Parse("5967544b-31b2-48ce-a746-2b6db6ff187a"),
+				OrderId = Guid.Parse("c4e8f239-f93d-4cf8-9eb9-7871fa5f79e9"),
 				Orderlines = new List<OrderlineDto>
 				{
 					new OrderlineDto
@@ -137,8 +131,7 @@ namespace buyyu.Tests
 			var sut = new OrderService(
 				mockOrderRepository.Object,
 				mockProductRepository.Object,
-				mockMailService.Object,
-				mockWarehouseService.Object
+				mockMailService.Object
 				);
 
 			//Act
@@ -146,7 +139,7 @@ namespace buyyu.Tests
 
 			//Assert
 			mockOrderRepository.Verify(x =>
-				x.Save(It.Is<OrderRoot>(x =>
+				x.AddSave(It.Is<OrderRoot>(x =>
 					x.ClientId == Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6")
 					&& x.Id == inDto.OrderId
 					&& x.State == OrderState.OrderStateEnum.NEW
@@ -235,8 +228,7 @@ namespace buyyu.Tests
 			var sut = new OrderService(
 				mockOrderRepository.Object,
 				mockProductRepository.Object,
-				mockMailService.Object,
-				mockWarehouseService.Object
+				mockMailService.Object
 				);
 
 			//Act
