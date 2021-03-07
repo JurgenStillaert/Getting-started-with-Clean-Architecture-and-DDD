@@ -3,6 +3,13 @@ using buyyu.BL.Interfaces;
 using buyyu.Data;
 using buyyu.Data.Repositories;
 using buyyu.Data.Repositories.Interfaces;
+using buyyu.DDD;
+using buyyu.Domain.Order;
+using buyyu.Domain.Payment;
+using buyyu.Domain.Shared;
+using buyyu.Domain.Shipment;
+using buyyu.Domain.Warehouse;
+using buyyu.web.Infrastructure;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
@@ -25,6 +32,8 @@ namespace buyyu
 		// This method gets called by the runtime. Use this method to add services to the container.
 		public void ConfigureServices(IServiceCollection services)
 		{
+			services.AddMediatrOnUseCases();
+
 			services.AddControllers();
 			services.AddSwaggerGen(c =>
 			{
@@ -40,15 +49,15 @@ namespace buyyu
 			services.AddTransient<IProductRepository, ProductRepository>();
 			services.AddTransient<IOrderRepository, OrderRepository>();
 			services.AddTransient<IOrderStateRepository, OrderStateRepository>();
-			services.AddTransient<IPaymentRepository, PaymentRepository>();
 			services.AddTransient<IWarehouseRepository, WarehouseRepository>();
 
+			services.AddTransient<IRepository<OrderRoot, OrderId>, Data.Repositories.Commands.OrderRepository>();
+			services.AddTransient<IRepository<PaymentRoot, PaymentId>, Data.Repositories.Commands.PaymentRepository>();
+			services.AddTransient<IRepository<ShipmentRoot, OrderId>, Data.Repositories.Commands.ShipmentRepository>();
+			services.AddTransient<IRepository<WarehouseRoot, ProductId>, Data.Repositories.Commands.WarehouseRepository>();
+
 			//Services
-			services.AddTransient<IProductService, ProductService>();
-			services.AddTransient<IOrderService, OrderService>();
 			services.AddTransient<IMailService, MailService>();
-			services.AddTransient<IWarehouseService, WarehouseService>();
-			services.AddTransient<IPaymentService, PaymentService>();
 		}
 
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

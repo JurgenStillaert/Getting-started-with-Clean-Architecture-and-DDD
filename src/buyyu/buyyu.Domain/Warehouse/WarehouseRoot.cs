@@ -1,17 +1,17 @@
-﻿using buyyu.Domain.Shared;
+﻿using buyyu.DDD;
+using buyyu.Domain.Shared;
 
 namespace buyyu.Domain.Warehouse
 {
-	public class WarehouseRoot
+	public class WarehouseRoot : AggregateRoot<ProductId>
 	{
-		public ProductId ProductId { get; private set; }
 		public Quantity QtyInStock { get; private set; }
 
 		public static WarehouseRoot StartNewProductStock(ProductId productId, Quantity quantity)
 		{
 			return new WarehouseRoot
 			{
-				ProductId = productId,
+				Id = productId,
 				QtyInStock = quantity
 			};
 		}
@@ -24,6 +24,14 @@ namespace buyyu.Domain.Warehouse
 		public void ReduceStock(Quantity removedItems)
 		{
 			QtyInStock -= removedItems;
+		}
+
+		protected override void EnsureValidState()
+		{
+			if (QtyInStock == null)
+			{
+				throw new AggregateRootInvalidStateException();
+			}
 		}
 	}
 }

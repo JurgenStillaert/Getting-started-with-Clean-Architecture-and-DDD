@@ -2,6 +2,7 @@
 using buyyu.Domain.Payment;
 using buyyu.Domain.Product;
 using buyyu.Domain.Shared;
+using buyyu.Domain.Shipment;
 using buyyu.Domain.Warehouse;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -22,6 +23,7 @@ namespace buyyu.Data
 		public DbSet<ProductRoot> Products { get; set; }
 		public DbSet<PaymentRoot> Payments { get; set; }
 		public DbSet<WarehouseRoot> Warehouses { get; set; }
+		public DbSet<ShipmentRoot> Shipments { get; set; }
 
 		protected override void OnModelCreating(ModelBuilder mb)
 		{
@@ -30,6 +32,7 @@ namespace buyyu.Data
 			ConfigurePaymentRoot(mb.Entity<PaymentRoot>());
 			ConfigureOrderRoot(mb.Entity<OrderRoot>());
 			ConfigureOrderline(mb.Entity<Orderline>());
+			ConfigureOrderline(mb.Entity<ShipmentRoot>());
 			ConfigureOrderState(mb.Entity<Domain.Order.Ref.OrderState>());
 		}
 
@@ -59,14 +62,14 @@ namespace buyyu.Data
 
 		private static void ConfigureWarehouseRoot(EntityTypeBuilder<WarehouseRoot> mb)
 		{
-			mb.HasKey(x => x.ProductId);
-			mb.Property(x => x.ProductId).HasConversion(x => x.Value, s => ProductId.FromGuid(s));
+			mb.HasKey(x => x.Id);
+			mb.Property(x => x.Id).HasConversion(x => x.Value, s => ProductId.FromGuid(s)).HasColumnName("ProductId");
 
 			mb.HasData(
-					new { ProductId = ProductId.FromString("de679c55-4c13-4fe7-91b4-69cbce3223a2") },
-					new { ProductId = ProductId.FromString("32f75bce-16a0-4070-9fac-4289678c191f") },
-					new { ProductId = ProductId.FromString("bcbc1851-6317-4022-be62-53d29c04bcda") },
-					new { ProductId = ProductId.FromString("5ca659b1-25b1-45c1-9755-3a3cd8591b9e") }
+					new { Id = ProductId.FromString("de679c55-4c13-4fe7-91b4-69cbce3223a2") },
+					new { Id = ProductId.FromString("32f75bce-16a0-4070-9fac-4289678c191f") },
+					new { Id = ProductId.FromString("bcbc1851-6317-4022-be62-53d29c04bcda") },
+					new { Id = ProductId.FromString("5ca659b1-25b1-45c1-9755-3a3cd8591b9e") }
 					);
 
 			mb.OwnsOne(
@@ -75,10 +78,10 @@ namespace buyyu.Data
 				{
 					qty.Property(o => o.Value).HasColumnName("QtyInStock");
 					qty.HasData(
-						new { WarehouseRootProductId = ProductId.FromString("de679c55-4c13-4fe7-91b4-69cbce3223a2"), Value = 213 },
-						new { WarehouseRootProductId = ProductId.FromString("32f75bce-16a0-4070-9fac-4289678c191f"), Value = 75 },
-						new { WarehouseRootProductId = ProductId.FromString("bcbc1851-6317-4022-be62-53d29c04bcda"), Value = 179 },
-						new { WarehouseRootProductId = ProductId.FromString("5ca659b1-25b1-45c1-9755-3a3cd8591b9e"), Value = 150 }
+						new { WarehouseRootId = ProductId.FromString("de679c55-4c13-4fe7-91b4-69cbce3223a2"), Value = 213 },
+						new { WarehouseRootId = ProductId.FromString("32f75bce-16a0-4070-9fac-4289678c191f"), Value = 75 },
+						new { WarehouseRootId = ProductId.FromString("bcbc1851-6317-4022-be62-53d29c04bcda"), Value = 179 },
+						new { WarehouseRootId = ProductId.FromString("5ca659b1-25b1-45c1-9755-3a3cd8591b9e"), Value = 150 }
 					);
 				});
 		}
@@ -227,6 +230,19 @@ namespace buyyu.Data
 						new { ProductRootId = ProductId.FromString("bcbc1851-6317-4022-be62-53d29c04bcda"), Amount = 305m, Currency = "EUR" },
 						new { ProductRootId = ProductId.FromString("5ca659b1-25b1-45c1-9755-3a3cd8591b9e"), Amount = 295m, Currency = "EUR" }
 					);
+				});
+		}
+
+		private void ConfigureOrderline(EntityTypeBuilder<ShipmentRoot> mb)
+		{
+			mb.HasKey(x => x.Id);
+			mb.Property(x => x.Id).HasConversion(x => x.Value, s => OrderId.FromGuid(s)).HasColumnName("OrderId");
+
+			mb.OwnsOne(
+				s => s.ShipmentDate,
+				sd =>
+				{
+					sd.Property(x => x.Value).HasColumnName("ShipmentDate");
 				});
 		}
 	}

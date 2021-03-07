@@ -94,6 +94,11 @@ public List<Orderline> Lines { get; private set; }
 				throw new InvalidOperationException("Cannot confirm order that already has been confirmed");
 			}
 
+			if (Lines.DefaultIfEmpty().Sum(ol => ol.Qty) == 0)
+			{
+				throw new Exception("Order does not have any products and cannot be confirmed");
+			}
+
 			State = OrderState.FromEnum(OrderState.OrderStateEnum.CNF);
 			OrderDate = OrderDate.Now();
 

@@ -1,6 +1,5 @@
 ﻿using buyyu.Data.Repositories.Interfaces;
-using buyyu.Domain.Order;
-using buyyu.Models;
+using buyyu.Models.Dtos;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
@@ -15,15 +14,6 @@ namespace buyyu.Data.Repositories
 		public OrderRepository(BuyyuDbContext context)
 		{
 			_context = context;
-		}
-
-		public async Task<OrderRoot> GetOrder(Guid orderId)
-		{
-			return await _context
-				.Orders
-				.Include(order => order.Lines)
-				.Include(order => order.State)
-				.SingleAsync(x => x.Id == orderId);
 		}
 
 		public async Task<OrderDto> GetOrderDto(Guid orderId)
@@ -47,17 +37,6 @@ namespace buyyu.Data.Repositories
 						Qty = orderline.Qty
 					}).ToList()
 				}).SingleAsync();
-		}
-
-		public async Task Save(OrderRoot order)
-		{
-			await _context.SaveChangesAsync();
-		}
-
-		public async Task AddSave(OrderRoot order)
-		{
-			await _context.AddAsync(order);
-			await _context.SaveChangesAsync();
 		}
 	}
 }

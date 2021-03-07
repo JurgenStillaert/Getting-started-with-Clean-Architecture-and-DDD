@@ -1,5 +1,6 @@
-﻿using buyyu.BL.Interfaces;
-using buyyu.Models;
+﻿using buyyu.Models.Dtos;
+using buyyu.Models.Queries;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -10,17 +11,17 @@ namespace buyyu.web.Controllers
 	[Route("/api/[Controller]")]
 	public class ProductsController : ControllerBase
 	{
-		private readonly IProductService _productService;
+		private readonly IMediator _mediator;
 
-		public ProductsController(IProductService productService)
+		public ProductsController(IMediator mediator)
 		{
-			_productService = productService;
+			_mediator = mediator;
 		}
 
 		[HttpGet]
 		public async Task<List<ProductDto>> GetProducts()
 		{
-			return await _productService.GetAllProducts();
+			return await _mediator.Send(new GetAllProductsQuery());
 		}
 	}
 }

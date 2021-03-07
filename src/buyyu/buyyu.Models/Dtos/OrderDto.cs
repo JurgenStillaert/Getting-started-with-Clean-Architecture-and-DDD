@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace buyyu.Models
+namespace buyyu.Models.Dtos
 {
 	public class OrderDto
 	{

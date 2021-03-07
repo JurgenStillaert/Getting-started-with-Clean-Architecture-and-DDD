@@ -1,6 +1,6 @@
 ﻿using buyyu.Data.Repositories.Interfaces;
 using buyyu.Domain.Product;
-using buyyu.Models;
+using buyyu.Models.Dtos;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -20,14 +20,19 @@ namespace buyyu.Data.Repositories
 
 		public async Task<List<ProductDto>> GetAllProducts()
 		{
-			return await _context.Products.AsNoTracking().Select(prd =>
-				new ProductDto
-				{
-					ProductId = prd.Id,
-					Name = prd.Name,
-					Description = prd.Description,
-					Price = prd.Price.Amount
-				}
+			return await _context.Products.AsNoTracking()
+				.Join(
+					_context.Warehouses.AsNoTracking(),
+					prod => prod.Id,
+					wh => wh.Id,
+					(prod, wh) => new ProductDto
+					{
+						ProductId = prod.Id,
+						Name = prod.Name,
+						Description = prod.Description,
+						Price = prod.Price.Amount,
+						Available = wh.QtyInStock
+					}
 			).ToListAsync();
 		}
 

@@ -18,7 +18,7 @@ namespace buyyu.Domain.Product
 
 			if (description.Length < 20 || description.Length > 1000)
 			{
-				throw new System.ArgumentException($"Length of '{nameof(description)}' does not fall between 3 and 100", nameof(description));
+				throw new System.ArgumentException($"Length of '{nameof(description)}' does not fall between 20 and 100", nameof(description));
 			}
 
 			Value = description;

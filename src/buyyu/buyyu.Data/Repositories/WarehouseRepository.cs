@@ -17,7 +17,7 @@ namespace buyyu.Data.Repositories
 
 		public async Task<bool> CheckProductStock(Guid productId, int amount)
 		{
-			var productStock = await _context.Warehouses.SingleOrDefaultAsync(x => x.ProductId == productId);
+			var productStock = await _context.Warehouses.SingleOrDefaultAsync(x => x.Id == productId);
 			if (productStock == null)
 			{
 				return false;
@@ -26,16 +26,6 @@ namespace buyyu.Data.Repositories
 			{
 				return productStock.QtyInStock.Value >= amount;
 			}
-		}
-
-		public async Task<WarehouseRoot> GetWarehouseRootByProduct(Guid productId)
-		{
-			return await _context.Warehouses.SingleAsync(x => x.ProductId == productId);
-		}
-
-		public async Task Save(WarehouseRoot warehouseRoot)
-		{
-			await _context.SaveChangesAsync();
 		}
 	}
 }

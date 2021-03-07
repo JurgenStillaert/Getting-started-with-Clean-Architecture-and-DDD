@@ -1,7 +1,10 @@
-﻿using buyyu.BL.Interfaces;
-using buyyu.Models;
+﻿using buyyu.Models.Commands;
+using buyyu.Models.Dtos;
+using buyyu.Models.Queries;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace buyyu.web.Controllers
@@ -10,60 +13,68 @@ namespace buyyu.web.Controllers
 	[Route("[controller]")]
 	public class OrderController : ControllerBase
 	{
-		private readonly IPaymentService _paymentService;
-		private readonly IWarehouseService _warehouseService;
-		private readonly IOrderService _orderService;
+		private readonly IMediator _mediator;
 
-		public OrderController(
-			IOrderService orderService, 
-			IWarehouseService warehouseService,
-			IPaymentService paymentService)
+		public OrderController(IMediator mediator)
 		{
-			_orderService = orderService;
-			_warehouseService = warehouseService;
-			_paymentService = paymentService;
+			_mediator = mediator;
 		}
 
 		[HttpGet]
 		[Route("/{id}")]
 		public async Task<OrderDto> GetOrder(Guid id)
 		{
-			return await _orderService.GetOrder(id);
+			return await _mediator.Send(new GetOrderDtoQuery(id));
 		}
 
 		[HttpPost]
 		public async Task<OrderDto> CreateOrder(OrderDto order)
 		{
 			order.OrderId = Guid.NewGuid();
-			return await _orderService.CreateOrder(order);
+
+			var orderlineCommands = order.Orderlines.Select(x => new CreateOrderCommand.OrderLineCommand(x.ProductId, x.Qty)).ToList();
+			var command = new CreateOrderCommand(order.OrderId, order.ClientId, orderlineCommands);
+			await _mediator.Send(command);
+
+			return await GetOrder(order.OrderId);
 		}
 
 		[HttpPut]
 		[Route("/{id}")]
 		public async Task<OrderDto> UpdateOrder(Guid id, OrderDto order)
 		{
-			return await _orderService.UpdateOrder(id, order);
+			var orderlineCommands = order.Orderlines.Select(x => new UpdateOrderCommand.OrderLineCommand(x.ProductId, x.Qty)).ToList();
+			var command = new UpdateOrderCommand(id, order.ClientId, orderlineCommands);
+			await _mediator.Send(command);
+
+			return await GetOrder(id);
 		}
 
 		[HttpPost]
 		[Route("/{id}/confirm")]
 		public async Task<OrderDto> ConfirmOrder(Guid id)
 		{
-			return await _orderService.ConfirmOrder(id);
+			await _mediator.Send(new ConfirmOrderCommand(id));
+
+			return await GetOrder(id);
 		}
 
 		[HttpPost]
 		[Route("/{id}/ship")]
 		public async Task<OrderDto> ShipOrder(Guid id)
 		{
-			return await _warehouseService.ShipOrder(id);
+			await _mediator.Send(new ShipOrderCommand(id));
+
+			return await GetOrder(id);
 		}
 
 		[HttpPost]
 		[Route("/{id}/pay")]
 		public async Task<OrderDto> PayOrder(Guid id, decimal amount)
 		{
-			return await _paymentService.PayOrder(id, amount);
+			await _mediator.Send(new PaymentReceivedCommand(id, amount));
+
+			return await GetOrder(id);
 		}
 	}
 }

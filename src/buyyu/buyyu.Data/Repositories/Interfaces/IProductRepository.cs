@@ -1,5 +1,5 @@
 ﻿using buyyu.Domain.Product;
-using buyyu.Models;
+using buyyu.Models.Dtos;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;

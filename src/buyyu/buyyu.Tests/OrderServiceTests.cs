@@ -10,7 +10,7 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using static buyyu.Models.OrderDto;
+using static buyyu.Models.Dtos.OrderDto;
 
 namespace buyyu.Tests
 {
@@ -79,7 +79,7 @@ namespace buyyu.Tests
 		public async Task CreateOrder_OrderWithTwoProducts_OrderSaved()
 		{
 			//Arrange
-			var inDto = new Models.OrderDto
+			var inDto = new Models.Dtos.OrderDto
 			{
 				ClientId = Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
 				OrderDate = DateTime.MinValue,
@@ -100,7 +100,7 @@ namespace buyyu.Tests
 				TotalAmount = 0m
 			};
 
-			var outDto = new Models.OrderDto
+			var outDto = new Models.Dtos.OrderDto
 			{
 				ClientId = Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
 				OrderId = Guid.Parse("c4e8f239-f93d-4cf8-9eb9-7871fa5f79e9"),
@@ -162,7 +162,7 @@ namespace buyyu.Tests
 		public async Task UpdateOrder_OrderWithTwoProducts_OrderUpdated()
 		{
 			//Arrange
-			var inDto = new Models.OrderDto
+			var inDto = new Models.Dtos.OrderDto
 			{
 				OrderId = Guid.Parse("3ed7fa03-fe11-441b-b59d-efab4928a6b9"),
 				Orderlines = new List<OrderlineDto>
@@ -187,7 +187,7 @@ namespace buyyu.Tests
 				}
 			};
 
-			var outDto = new Models.OrderDto
+			var outDto = new Models.Dtos.OrderDto
 			{
 				ClientId = Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
 				OrderId = Guid.Parse("5967544b-31b2-48ce-a746-2b6db6ff187a"),

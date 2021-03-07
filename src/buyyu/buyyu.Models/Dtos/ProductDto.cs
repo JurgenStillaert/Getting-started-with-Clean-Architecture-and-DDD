@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace buyyu.Models
+namespace buyyu.Models.Dtos
 {
 	public class ProductDto
 	{

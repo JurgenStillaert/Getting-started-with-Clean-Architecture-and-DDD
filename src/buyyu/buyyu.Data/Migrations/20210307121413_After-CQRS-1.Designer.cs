@@ -3,15 +3,17 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using buyyu.Data;
 
 namespace buyyu.Data.Migrations
 {
     [DbContext(typeof(BuyyuDbContext))]
-    partial class BuyyuDbContextModelSnapshot : ModelSnapshot
+    [Migration("20210307121413_After-CQRS-1")]
+    partial class AfterCQRS1
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
