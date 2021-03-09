@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\buyyu.DDD\buyyu.DDD.csproj" />
+    <ProjectReference Include="..\buyyu.Models\buyyu.Models.csproj" />
   </ItemGroup>
 
 </Project>

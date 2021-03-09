@@ -40,7 +40,7 @@ namespace buyyu.Data.Repositories
 		{
 			if (product.Id == null || product.Id == Guid.Empty)
 			{
-				await _context.AddAsync(product); 
+				await _context.AddAsync(product);
 			}
 			await _context.SaveChangesAsync();
 

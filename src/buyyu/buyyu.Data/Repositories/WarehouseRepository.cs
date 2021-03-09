@@ -1,5 +1,4 @@
 ﻿using buyyu.Data.Repositories.Interfaces;
-using buyyu.Domain.Warehouse;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Threading.Tasks;

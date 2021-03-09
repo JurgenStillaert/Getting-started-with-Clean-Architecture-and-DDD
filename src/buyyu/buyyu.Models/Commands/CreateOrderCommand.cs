@@ -4,29 +4,29 @@ using System.Collections.Generic;
 
 namespace buyyu.Models.Commands
 {
-public sealed class CreateOrderCommand : IRequest
-{
-	public CreateOrderCommand(Guid orderId, Guid clientId, List<OrderLineCommand> orderLines)
+	public sealed class CreateOrderCommand : IRequest
 	{
-		OrderId = orderId;
-		ClientId = clientId;
-		OrderLines = orderLines;
-	}
-
-	public Guid OrderId { get; }
-	public Guid ClientId { get; }
-	public List<OrderLineCommand> OrderLines { get; }
-
-	public sealed class OrderLineCommand
-	{
-		public OrderLineCommand(Guid productId, int quantity)
+		public CreateOrderCommand(Guid orderId, Guid clientId, List<OrderLineCommand> orderLines)
 		{
-			ProductId = productId;
-			Quantity = quantity;
+			OrderId = orderId;
+			ClientId = clientId;
+			OrderLines = orderLines;
 		}
 
-		public Guid ProductId { get; }
-		public int Quantity { get; }
+		public Guid OrderId { get; }
+		public Guid ClientId { get; }
+		public List<OrderLineCommand> OrderLines { get; }
+
+		public sealed class OrderLineCommand
+		{
+			public OrderLineCommand(Guid productId, int quantity)
+			{
+				ProductId = productId;
+				Quantity = quantity;
+			}
+
+			public Guid ProductId { get; }
+			public int Quantity { get; }
+		}
 	}
-}
 }

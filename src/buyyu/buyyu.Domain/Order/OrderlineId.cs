@@ -21,7 +21,9 @@ namespace buyyu.Domain.Order
 		}
 
 		public static OrderlineId GenerateNew() => new OrderlineId(Guid.NewGuid());
+
 		public static OrderlineId FromGuid(Guid orderlineId) => new OrderlineId(orderlineId);
+
 		public static OrderlineId FromString(string orderlineId) => new OrderlineId(Guid.Parse(orderlineId));
 
 		public static implicit operator Guid(OrderlineId orderlineId) => orderlineId.Value;

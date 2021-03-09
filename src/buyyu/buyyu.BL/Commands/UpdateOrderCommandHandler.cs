@@ -3,6 +3,7 @@ using buyyu.DDD;
 using buyyu.Domain.Order;
 using buyyu.Domain.Shared;
 using buyyu.Models.Commands;
+using MediatR;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -14,8 +15,9 @@ namespace buyyu.BL.Commands
 
 		public UpdateOrderCommandHandler(
 			IRepository<OrderRoot, OrderId> repo,
-			IProductRepository productRepository)
-			: base(repo)
+			IProductRepository productRepository,
+			IMediator mediator)
+			: base(repo, mediator)
 		{
 			_productRepository = productRepository;
 		}

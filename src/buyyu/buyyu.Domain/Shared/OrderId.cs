@@ -21,6 +21,7 @@ namespace buyyu.Domain.Shared
 		}
 
 		public static OrderId FromGuid(Guid orderId) => new OrderId(orderId);
+
 		public static OrderId FromString(string orderId) => new OrderId(Guid.Parse(orderId));
 
 		public static implicit operator Guid(OrderId orderId) => orderId.Value;

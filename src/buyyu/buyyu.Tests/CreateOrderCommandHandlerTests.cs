@@ -5,6 +5,7 @@ using buyyu.Domain.Order;
 using buyyu.Domain.Product;
 using buyyu.Domain.Shared;
 using buyyu.Models.Commands;
+using MediatR;
 using Moq;
 using NUnit.Framework;
 using System;
@@ -28,6 +29,7 @@ namespace buyyu.Tests
 			var command = new CreateOrderCommand(orderId, clientId, orderlines);
 			var mockOrderRepo = new Mock<IRepository<OrderRoot, OrderId>>();
 			var mockProductRepo = new Mock<IProductRepository>();
+			var mockMediator = new Mock<IMediator>();
 
 			mockProductRepo.Setup(x => x.GetProduct(productId)).ReturnsAsync(
 				new ProductRoot(
@@ -36,7 +38,7 @@ namespace buyyu.Tests
 					Description.FromString("Lorem ipsum dolor sit amet, consectetur adipiscing elit"),
 					Money.FromDecimalAndCurrency(10, "EUR")));
 
-			var sut = new CreateOrderCommandHandler(mockProductRepo.Object, mockOrderRepo.Object);
+			var sut = new CreateOrderCommandHandler(mockProductRepo.Object, mockOrderRepo.Object, mockMediator.Object);
 
 			//Act
 			await sut.Handle(command, CancellationToken.None);

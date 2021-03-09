@@ -21,6 +21,7 @@ namespace buyyu.Domain.Shared
 		}
 
 		public static Quantity FromInt(int qty) => new Quantity(qty);
+
 		public static Quantity Empty() => new Quantity(0);
 
 		public static implicit operator int(Quantity quantity) => quantity.Value;

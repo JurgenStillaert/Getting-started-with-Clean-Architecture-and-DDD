@@ -9,7 +9,9 @@ namespace buyyu.Data.Repositories.Interfaces
 	public interface IProductRepository
 	{
 		Task<List<ProductDto>> GetAllProducts();
+
 		Task<ProductRoot> GetProduct(Guid productId);
+
 		Task<ProductRoot> Save(ProductRoot product);
 	}
 }

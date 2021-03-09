@@ -3,32 +3,24 @@ using buyyu.Domain.Shared;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using static buyyu.Models.Events.OrderEvents;
 
 namespace buyyu.Domain.Order
 {
 	public class OrderRoot : AggregateRoot<OrderId>
 	{
-public ClientId ClientId { get; private set; }
-public OrderDate OrderDate { get; private set; }
-public Money TotalAmount { get; private set; }
-public Money PaidAmount { get; private set; }
-public OrderState State { get; private set; }
-public List<Orderline> Lines { get; private set; }
+		public ClientId ClientId { get; private set; }
+		public OrderDate OrderDate { get; private set; }
+		public Money TotalAmount { get; private set; }
+		public Money PaidAmount { get; private set; }
+		public OrderState State { get; private set; }
+		public List<Orderline> Lines { get; private set; }
 
 		public static OrderRoot Create(OrderId orderId, ClientId clientId)
 		{
-			var order = new OrderRoot
-			{
-				Id = orderId,
-				ClientId = clientId,
-				State = OrderState.FromEnum(OrderState.OrderStateEnum.NEW),
-				OrderDate = OrderDate.Now(),
-				TotalAmount = Money.Empty("EUR"),
-				PaidAmount = Money.Empty("EUR"),
-				Lines = new List<Orderline>()
-			};
+			var order = new OrderRoot();
 
-			order.EnsureValidState();
+			order.Apply(new v1.OrderCreated(orderId, clientId, DateTime.Now));
 
 			return order;
 		}
@@ -45,11 +37,7 @@ public List<Orderline> Lines { get; private set; }
 				throw new InvalidOperationException("Product is already added");
 			}
 
-			Lines.Add(Orderline.Create(OrderlineId.GenerateNew(), productId, price, qty));
-
-			TotalAmount = Money.FromDecimalAndCurrency(Lines.Select(x => x.Price.Amount * x.Qty).Sum(), "EUR");
-
-			EnsureValidState();
+			Apply(new v1.OrderlineAdded(Id, OrderlineId.GenerateNew(), productId, price.Amount, price.Currency, qty));
 		}
 
 		public void UpdateOrderline(ProductId productId, Money price, Quantity qty)
@@ -64,13 +52,7 @@ public List<Orderline> Lines { get; private set; }
 				throw new InvalidOperationException("Product is not found");
 			}
 
-			var orderline = Lines.First(ol => ol.ProductId == productId);
-
-			orderline.Update(price, qty);
-
-			TotalAmount = Money.FromDecimalAndCurrency(Lines.Select(x => x.Price.Amount * x.Qty).Sum(), "EUR");
-
-			EnsureValidState();
+			Apply(new v1.OrderlineUpdated(Id, productId, price.Amount, price.Currency, qty));
 		}
 
 		public void RemoveOrderline(ProductId productId)
@@ -80,11 +62,7 @@ public List<Orderline> Lines { get; private set; }
 				throw new InvalidOperationException("Cannot remove orderlines to a confirmed order");
 			}
 
-			Lines.Remove(Lines.First(ol => ol.ProductId == productId));
-
-			TotalAmount = Money.FromDecimalAndCurrency(Lines.Select(x => x.Price.Amount * x.Qty).Sum(), "EUR");
-
-			EnsureValidState();
+			Apply(new v1.OrderlineRemoved(Id, productId));
 		}
 
 		public void Confirm()
@@ -99,10 +77,7 @@ public List<Orderline> Lines { get; private set; }
 				throw new Exception("Order does not have any products and cannot be confirmed");
 			}
 
-			State = OrderState.FromEnum(OrderState.OrderStateEnum.CNF);
-			OrderDate = OrderDate.Now();
-
-			EnsureValidState();
+			Apply(new v1.OrderConfirmed(Id, OrderDate.Now()));
 		}
 
 		public void MarkShipped()
@@ -112,10 +87,7 @@ public List<Orderline> Lines { get; private set; }
 				throw new InvalidOperationException("Cannot confirm not confirmed order");
 			}
 
-			State = OrderState.FromEnum(OrderState.OrderStateEnum.SHP);
-			OrderDate = OrderDate.Now();
-
-			EnsureValidState();
+			Apply(new v1.MarkedShipped(Id));
 		}
 
 		public void MarkPaid(Money amount)
@@ -125,9 +97,7 @@ public List<Orderline> Lines { get; private set; }
 				throw new InvalidOperationException("Cannot pay not confirmed order");
 			}
 
-			PaidAmount += amount;
-
-			EnsureValidState();
+			Apply(new v1.MarkedPaid(Id, amount.Amount, amount.Currency));
 		}
 
 		protected override void EnsureValidState()
@@ -150,5 +120,63 @@ public List<Orderline> Lines { get; private set; }
 				throw new AggregateRootInvalidStateException();
 			}
 		}
+
+		#region Handlers
+
+		private void Handle(v1.OrderCreated @event)
+		{
+			Id = OrderId.FromGuid(@event.OrderId);
+			ClientId = ClientId.FromGuid(@event.ClientId);
+			State = OrderState.FromEnum(OrderState.OrderStateEnum.NEW);
+			OrderDate = OrderDate.FromDateTime(@event.OrderDate);
+			TotalAmount = Money.Empty("EUR");
+			PaidAmount = Money.Empty("EUR");
+			Lines = new List<Orderline>();
+		}
+
+		private void Handle(v1.OrderlineAdded @event)
+		{
+			Lines.Add(Orderline.Create(
+				OrderlineId.FromGuid(@event.OrderlineId),
+				ProductId.FromGuid(@event.ProductId),
+				Money.FromDecimalAndCurrency(@event.Price, @event.Currency),
+				Quantity.FromInt(@event.Quantity)));
+
+			TotalAmount = Money.FromDecimalAndCurrency(Lines.Select(x => x.Price.Amount * x.Qty).Sum(), "EUR");
+		}
+
+		private void Handle(v1.OrderlineUpdated @event)
+		{
+			var orderline = Lines.First(ol => ol.ProductId == @event.ProductId);
+
+			orderline.Update(Money.FromDecimalAndCurrency(@event.Price, @event.Currency), Quantity.FromInt(@event.Quantity));
+
+			TotalAmount = Money.FromDecimalAndCurrency(Lines.Select(x => x.Price.Amount * x.Qty).Sum(), "EUR");
+		}
+
+		private void Handle(v1.OrderlineRemoved @event)
+		{
+			Lines.Remove(Lines.First(ol => ol.ProductId == @event.ProductId));
+
+			TotalAmount = Money.FromDecimalAndCurrency(Lines.Select(x => x.Price.Amount * x.Qty).Sum(), "EUR");
+		}
+
+		private void Handle(v1.OrderConfirmed @event)
+		{
+			State = OrderState.FromEnum(OrderState.OrderStateEnum.CNF);
+			OrderDate = OrderDate.FromDateTime(@event.OrderDate);
+		}
+
+		private void Handle(v1.MarkedShipped @event)
+		{
+			State = OrderState.FromEnum(OrderState.OrderStateEnum.SHP);
+		}
+
+		private void Handle(v1.MarkedPaid @event)
+		{
+			PaidAmount += Money.FromDecimalAndCurrency(@event.Amount, @event.Currency);
+		}
+
+		#endregion Handlers
 	}
 }

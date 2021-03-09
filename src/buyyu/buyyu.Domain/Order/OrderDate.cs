@@ -21,6 +21,7 @@ namespace buyyu.Domain.Order
 		}
 
 		public static OrderDate FromDateTime(DateTime orderDate) => new OrderDate(orderDate);
+
 		public static OrderDate Now() => new OrderDate(DateTime.Now);
 
 		public static implicit operator DateTime(OrderDate orderDate) => orderDate.Value;

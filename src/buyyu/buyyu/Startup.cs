@@ -1,5 +1,3 @@
-using buyyu.BL;
-using buyyu.BL.Interfaces;
 using buyyu.Data;
 using buyyu.Data.Repositories;
 using buyyu.Data.Repositories.Interfaces;
@@ -55,9 +53,6 @@ namespace buyyu
 			services.AddTransient<IRepository<PaymentRoot, PaymentId>, Data.Repositories.Commands.PaymentRepository>();
 			services.AddTransient<IRepository<ShipmentRoot, OrderId>, Data.Repositories.Commands.ShipmentRepository>();
 			services.AddTransient<IRepository<WarehouseRoot, ProductId>, Data.Repositories.Commands.WarehouseRepository>();
-
-			//Services
-			services.AddTransient<IMailService, MailService>();
 		}
 
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

@@ -10,7 +10,6 @@ namespace buyyu.Domain.Shipment
 		//Satisfy EF Core
 		private ShipmentDate()
 		{
-
 		}
 
 		private ShipmentDate(DateTime shipmentDate)
@@ -19,6 +18,8 @@ namespace buyyu.Domain.Shipment
 		}
 
 		public static ShipmentDate Now() => new ShipmentDate(DateTime.Now);
+
+		public static ShipmentDate FromDateTime(DateTime shipmentDate) => new ShipmentDate(shipmentDate);
 
 		public static implicit operator DateTime(ShipmentDate shipmentDate) => shipmentDate.Value;
 	}

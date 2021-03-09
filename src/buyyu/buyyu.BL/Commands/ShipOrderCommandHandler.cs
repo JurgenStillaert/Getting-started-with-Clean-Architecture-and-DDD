@@ -1,5 +1,4 @@
-﻿using buyyu.BL.Interfaces;
-using buyyu.Data.Repositories.Interfaces;
+﻿using buyyu.Data.Repositories.Interfaces;
 using buyyu.DDD;
 using buyyu.Domain.Shared;
 using buyyu.Domain.Shipment;
@@ -16,17 +15,14 @@ namespace buyyu.BL.Commands
 		private readonly IMediator _mediator;
 		private readonly IWarehouseRepository _warehouseRepository;
 		private readonly IOrderRepository _orderRepository;
-		private readonly IMailService _mailService;
 
 		public ShipOrderCommandHandler(
 			IRepository<ShipmentRoot, OrderId> repo,
 			IOrderRepository orderRepository,
 			IWarehouseRepository warehouseRepository,
-			IMediator mediator,
-			IMailService mailService)
-			: base(repo)
+			IMediator mediator)
+			: base(repo, mediator)
 		{
-			_mailService = mailService;
 			_orderRepository = orderRepository;
 			_warehouseRepository = warehouseRepository;
 			_mediator = mediator;
@@ -52,8 +48,6 @@ namespace buyyu.BL.Commands
 			{
 				await _mediator.Send(new ReduceStockCommand(orderline.ProductId, orderline.Qty));
 			}
-
-			await _mediator.Send(new MarkShippedOrderCommand(command.OrderId));
 		}
 
 		private async Task CheckProductStock(OrderDto.OrderlineDto orderline)

@@ -1,19 +1,18 @@
 ﻿using buyyu.DDD;
 using buyyu.Domain.Shared;
-using System;
 
 namespace buyyu.Domain.Product
 {
 	public class ProductRoot : AggregateRoot<ProductId>
 	{
 		//Satisfy EF
-		private ProductRoot() {}
+		private ProductRoot() { }
 
 		//For now, we use a simple contsructor for this reference class
 		public ProductRoot(
-			ProductId id, 
-			ProductName name, 
-			Description description, 
+			ProductId id,
+			ProductName name,
+			Description description,
 			Money price)
 		{
 			Id = id;
@@ -27,7 +26,6 @@ namespace buyyu.Domain.Product
 		public ProductName Name { get; private set; }
 		public Description Description { get; private set; }
 		public Money Price { get; private set; }
-		
 
 		protected override void EnsureValidState()
 		{

@@ -1,536 +1,235 @@
-# CQRS
+# Domain Events & Event driven
 
-Command Query Responsibililty Segregation [1] is een pattern waarbij het model dat wordt gebruikt om informatie te lezen, wordt gescheiden van het model dat wordt gebruikt om informatie bij te werken. In een meer traditionele architectuur wordt één enkel objectmodel gebruikt om zowel gegevens te lezen als bij te werken:
+> Als een order is bevestigd, dan moet er een bevestigingsmail naar de klant verzonden worden.
 
-![image-20210306181101296](README.assets/image-20210306181101296.png)
+Bovenstaande is een zin die business wel eens zou kunnen zeggen. Het eerste deel, order bevestigd, is een event op ons domain object. Een event is een gebeurtenis dat vast staat, wat niet meer terug gedraaid kan worden. Als er een fout is gebeurd, dan is de enige manier om dat op te lossen door een compenserend event.
 
-Compromissen worden noodzakelijk om een enkel objectmodel te gebruiken, aangezien domein-klassen nodig zijn om alle doeleinden te dienen. Dezelfde representatie van een entiteit moet alle CRUD operaties ondersteunen, waardoor ze groter worden dan ze in alle omstandigheden moeten zijn.
-Bovendien zijn aanpassingen van state veel kleiner dan reads, waardoor de noden voor op te schalen ook anders zijn.
+Bijvoorbeeld, stel dat de bank op uw zichtrekening te veel geld heeft afgehouden. Deze verrichting staat nu op uw overzicht. Wat de bank niet gaat doen om deze fout recht te zetten is de foute verrichting schrappen of aanpassen. In de plaats daarvan maken ze een nieuwe verrichting waarbij er geld gestort wordt op uw rekening.
 
-Eén manier om dit te overwinnen is het gebruik van een enkel object-model voor queries (Read) en commands (Create, Update, Delete). 
+Het tweede deel van bovenstaande zin, "dan moer er...", zijn  gevolgen die aan een event gekoppeld worden. Dit kunnen er geen zijn, één of meerdere. Momenteel is dit in de code als volgt:
 
-Een optimalisatie hierop, al is dit geen verplichting, is het gebruik van verschillende databases voor het query en command model. Deze databases moeten dan natuurlijk wel in sync gehouden worden. De vorm en manier waarop data in de verschillende modellen worden opgeslagen kunnen ook verschillen. Het is niet zo dat als een aanpassing gebeurt, command dus, de hele database gekopieerd wordt naar het query model. In de command-zijde  gaan we bijvoorbeeld enkel een event stream bijhouden van welke commands er allemaal zijn aangeroepen, en deze opnieuw naspelen om een domein object terug op te bouwen. Deze events, als ze origineel worden aangeroepen, triggeren event handlers die dto's aanmaken in NoSql databases. Bijvoorbeeld een dto om een overzicht grid van orders te vullen en een dto om een order te bekijken. Dit leidt tot redundante data, waar een RDBMS via normaal vormen ons duwt om zo weinig mogelijk disk ruimte in te nemen. Echter, dit stamt vanuit een tijd dat disk ruimte nog duur was. Door het verminderen van joins die we moeten schrijven, kunnen we ook sneller data terug geven aan de gebruiker en we kunnen ook optimaliseren naar gebruik: we kunnen dto's die frequent gebruikt worden wegschrijven in een Redis Cache en data die gebruikt wordt voor analyse naar een data warehouse.
+```c#
+//Send email
+await _mailService.SendOrderConfirmationMail(AggregateRoot);
+```
 
-In dit hoofdstuk gaan we momenteel nog niet zo ver, maar het is belangrijk te weten dat deze stappen mogelijk zijn als we CQRS nog willen optimaliseren. We gaan basis CQRS implementeren door de commands en queries in aparte classes te steken. SOLID-gewijs gaan we met het Single Responsibility principe per use case een aparte class hebben, die enkel doet waar de use case over gaat.
+Telkens er een gevolg aan een event wordt aangebreid, wordt een nieuwe regel of regels in onze use case toegevoegd. Echter, dit is niet volgens het Single Responsibility principe. Er zijn nu meerdere redenen om een class aan te passen, bijvoorbeeld stel dat er andere parameters vereist worden door de mailservice. Dit heeft niets te maken met een order bevestigen.
 
-We gaan ook de infrastructure layer loskoppelen van onze business logic door het mediatior pattern, meer bepaald gebruik makende van Mediatr [2] van Jimmy Bogard
+Beter zou zijn om het event dat plaats gevonden heeft op een queue te plaatsen waarop andere classes kunnen inschrijven. Op deze manier wordt een event driven applicatie gebouwd en worden de verantwoordelijkheden verder uit elkaar getrokken. Als we de events als messages op een externe queue plaatsen kunnen ook andere services hierop reageren. Stel dat een klant inactief wordt geplaatst door de service  voor klantenbeheer, dan kunnen openstaande orders verwijderd worden door de order service.
 
-
+Aangezien deze events op vele plaatsen kunnen gebruikt worden, zijn de properties van deze event classes altijd primitive types.
+De naamgeving van een event is altijd een beschrijving in het verleden: OrderCreated, OrderlineAdded.
 
 ## Buyyu project
 
-### MediatR
+### **Domain Event**
 
-Installeer Nuget package MediatR.Extensions.Microsoft.DependencyInjection in het web project. Voor andere projecten waar we MediatR gaan gebruiken is enkel basis package voldoende.
-
-In het web project gaan we via reflection de assemblies scannen op zoek naar handlers via de volgende code:
+Volgende interface dient om aan te duiden welke de domain events zijn. Deze erft ook van MediatR's INotification, dewelke dient om te publishen waarop meerdere classes op kunnen luisteren.
 
 ```c#
-public static IServiceCollection AddMediatrOnUseCases(this IServiceCollection services)
+public interface IDomainEvent : INotification
 {
-	var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies().ToList();
-	var loadedPaths = loadedAssemblies.Select(a => a.Location).ToArray();
-
-	var referencedPaths = Directory.GetFiles(AppDomain.CurrentDomain.BaseDirectory, "*.BL.dll").ToList();
-
-	var toLoad = referencedPaths.Where(r => !loadedPaths.Contains(r, StringComparer.InvariantCultureIgnoreCase)).ToList();
-
-	toLoad.ForEach(path => loadedAssemblies.Add(AppDomain.CurrentDomain.Load(AssemblyName.GetAssemblyName(path))));
-
-	var useCaseAssemblies = AppDomain.CurrentDomain.GetAssemblies().Where(x => x.GetName().Name.EndsWith(".BL")).ToArray();
-
-	services.AddMediatR(useCaseAssemblies);
-
-	return services;
 }
 ```
 
-Gebruik in Startup.cs:
+We maken dan ook de overeenkomstige domain events aan. Aangezien dit weer een communicatiemiddel is naar buiten toe, plaatsen we dit weer in de Models folder (het is duidelijk dat Models niet meer de lading dekt, het is aan te raden dit te hernoemen naar messages of iets dergelijk).
 
 ```c#
-services.AddMediatrOnUseCases();
-```
-
-### Requests: commands en queries
-
-In het models project plaatsen we de dtos in een aparte folder en we voegen twee nieuwe folders er aan toen: commands en queries. Objecten van deze classes gaan dienen voor de communicatie van de infrastructuur laag (de controllers) naar de binnenste lagen, maar ook om later events te dispatchen waarop andere bounded contexten kunnen op reageren.
-
-Volgende command is voor het aanmaken van een order:
-
-```c#
-public sealed class CreateOrderCommand : IRequest
+public sealed class OrderCreated : IDomainEvent
 {
-	public CreateOrderCommand(Guid orderId, Guid clientId, List<OrderLineCommand> orderLines)
+	public OrderCreated(
+		Guid orderId,
+		Guid clientId,
+		DateTime orderDate)
 	{
 		OrderId = orderId;
 		ClientId = clientId;
-		OrderLines = orderLines;
+		OrderDate = orderDate;
 	}
 
 	public Guid OrderId { get; }
 	public Guid ClientId { get; }
-	public List<OrderLineCommand> OrderLines { get; }
-
-	public sealed class OrderLineCommand
-	{
-		public OrderLineCommand(Guid productId, int quantity)
-		{
-			ProductId = productId;
-			Quantity = quantity;
-		}
-
-		public Guid ProductId { get; }
-		public int Quantity { get; }
-	}
+	public DateTime OrderDate { get; }
 }
 ```
 
-Omdat deze type van klasses ook apart staan, zeg maar in een soort messages project, is er ook geen harde koppeling met de effectieve implementatie. Communicatie gebeurt door een object als een soort message op een interne queue te plaatsen.
 
-### Handlers
 
-Het volgende is een eerste opzet van een handler:
+### **AggregateRoot**
 
-```c#
-public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand>
+We breiden de AggregateRoot base class uit zodat de events kunnen bijgehouden worden, en om de flow wat anders te laten lopen zodoende dat er altijd een zekerheid is dat de event bijgehouden wordt en er altijd de valid state gecontroleerd wordt.
+
+```C#
+public abstract class AggregateRoot<TKey> : Entity<TKey> where TKey : Value<TKey>
 {
-	private readonly IOrderRepository _orderRepository;
-	private readonly IProductRepository _productRepository;
+	private readonly List<IDomainEvent> _changes = new List<IDomainEvent>();
+	public IReadOnlyList<IDomainEvent> Changes => _changes.ToList();
 
-	public CreateOrderCommandHandler(IProductRepository productRepository, IOrderRepository orderRepository)
-	{
-		_productRepository = productRepository;
-		_orderRepository = orderRepository;
-	}
+	public void ClearChanges() => _changes.Clear();
 
-	public async Task<Unit> Handle(CreateOrderCommand command, CancellationToken cancellationToken)
+	/// <summary>
+	/// Find Handle methods in the implementation with parameter of type @event
+	/// </summary>
+	/// <param name="event"></param>
+	protected void When(IDomainEvent @event)
 	{
-		var newOrder = OrderRoot.Create(OrderId.FromGuid(command.OrderId), ClientId.FromGuid(command.ClientId));
-		foreach (var orderline in command.OrderLines)
+		//Get the handle methods
+		var handleMethod = this.GetType().GetMethod(
+				"Handle",
+				BindingFlags.Instance | BindingFlags.NonPublic,
+				Type.DefaultBinder,
+				new Type[] { @event.GetType() },
+				null);
+
+		if (handleMethod == null)
 		{
-			var product = await _productRepository.GetProduct(orderline.ProductId);
-			newOrder.AddOrderline(ProductId.FromGuid(product.Id), product.Price, Quantity.FromInt(orderline.Quantity));
-		}
-
-		await _orderRepository.AddSave(newOrder);
-
-		return await Unit.Task;
-	}
-}
-```
-
-Een command handler geeft geen data terug, daarom maken we er een Task<Unit> return type van, wat zoveel wilt zeggen als void.
-
-Maar command handlers hebben altijd hetzelfde patroon:
-
-1. Ophalen van de aggregate root (bij update en delete)
-2. Het aanroepen van methods van de aggregate root
-3. Het bewaren van de aggregate root
-
-We kunnen deze stappen faciliteren door het gebruik van een base class:
-
-```c#
-public abstract class CommandHandler<TCommand, TAggregate, TKey> : IRequestHandler<TCommand>
-	where TAggregate : AggregateRoot<TKey>
-	where TCommand : IRequest
-	where TKey : Value<TKey>
-{
-	protected CommandHandler(
-		IRepository<TAggregate, TKey> repo,
-		HandlerTypeEnum handlerType)
-	{
-		Repo = repo;
-		CommandType = handlerType;
-	}
-
-	public IRepository<TAggregate, TKey> Repo { get; }
-	public TKey AggregateId { get; protected set; }
-	public TAggregate AggregateRoot { get; protected set; }
-	private HandlerTypeEnum CommandType { get; }
-
-	public bool skipSave = false;
-	private bool isDeleted = false;
-
-	public async Task<Unit> Handle(TCommand command, CancellationToken cancellationToken)
-	{
-		if (CommandType == HandlerTypeEnum.Update)
-		{
-			//Execute prehandle method to get aggregateId
-			var preHandleMethod = GetHandleMethod(command, HandleMethodType.PreHandle);
-
-			try
-			{
-				preHandleMethod.Invoke(this, new object[] { command });
-			}
-			catch (TargetInvocationException targetInvocationException)
-			{
-				throw targetInvocationException.InnerException;
-			}
-			catch (Exception)
-			{
-				throw;
-			}
-
-			AggregateRoot = await GetAggregateFromRepo();
+			throw new MissingMethodException($"Handle method with event { @event.GetType()} is missing");
 		}
 
 		try
 		{
-			await Apply(command);
-
-			if (AggregateRoot != null)
-			{
-				if (!isDeleted)
-				{
-					if (!skipSave)
-					{
-						if (CommandType == HandlerTypeEnum.Create)
-						{
-							await Repo.Add(AggregateRoot);
-						}
-						else
-						{
-							await Repo.Save(AggregateRoot);
-						}
-					}
-				}
-			}
+			handleMethod.Invoke(this, new object[] { @event });
 		}
 		catch (TargetInvocationException targetInvocationException)
 		{
 			throw targetInvocationException.InnerException;
 		}
-		catch (Exception ex)
+	}
+
+	protected void Apply(IDomainEvent @event)
+	{
+		When(@event);
+		EnsureValidState();
+		_changes.Add(@event);
+	}
+
+	public void Replay(List<IDomainEvent> history)
+	{
+		foreach (var @event in history)
 		{
-			throw;
-		}
-
-		return await Unit.Task;
-	}
-
-	protected async Task DeleteAggregateRoot()
-	{
-		isDeleted = true;
-		await Repo.Delete(AggregateRoot);
-	}
-
-	protected async Task<TAggregate> GetAggregateFromRepo()
-	{
-		return await Repo.Load(AggregateId);
-	}
-
-	protected abstract Task Apply(TCommand command);
-
-	private MethodInfo GetHandleMethod(TCommand command, HandleMethodType handleMethodType)
-	{
-		//Get the handle methods
-		var handleMethod = this.GetType().GetMethod(
-				Enum.GetName(typeof(HandleMethodType), handleMethodType),
-				BindingFlags.Instance | BindingFlags.NonPublic,
-				Type.DefaultBinder,
-				new Type[] { command.GetType() },
-				null);
-
-		if (handleMethod == null)
-		{
-			throw new MissingMethodException($"Handle method with event { command.GetType()} is missing");
-		}
-
-		return handleMethod;
-	}
-
-	private enum HandleMethodType
-	{
-		Handle,
-		PreHandle
-	}
-
-	protected enum HandlerTypeEnum
-	{
-		Update,
-		Create
-	}
-}
-```
-
-De Handle method wordt opgeroepen via MediatR en is dus ons startpunt. Indien dit een update commandhandler is (zie verder) dan wordt er eerst een PreHandle method uitgevoerd, waarbij de developer de kans krijgt om aan te duiden wat de Id is van de aggregate root waar deze use case om draait.
-Vervolgens wordt dan via de repository deze aggregate root uit de database opgehaald.
-
-Daarna verwacht de base class dat de developer een Apply(command) methode heeft geïmplementeerd, waar de nodige controles naar buiten (dus buiten de bounded context / aggregate) doet. Bijvoorbeeld bij het verzenden van een order gaat het magazijn nog eerst controleren of deze order wel bevestigd is. De aanpassingen aan de aggregate gebeuren via de calls in de aggregate root die in vorige hoofdstukken zijn aangemaakt.
-
-Tenslotte worden de nodige acties uitgevoerd op de repository: aanpassen, toevoegen of verwijderen.
-
-Om te bepalen of dit een create of update use case is worden hierboven nog twee andere command handlers geplaatst:
-
-```c#
-public abstract class CreateCommandHandler<TCommand, TAggregate, TKey> : CommandHandler<TCommand, TAggregate, TKey>
-		where TAggregate : AggregateRoot<TKey>
-		where TCommand : IRequest
-		where TKey : Value<TKey>
-{
-	protected CreateCommandHandler(IRepository<TAggregate, TKey> repo)
-		: base(repo, HandlerTypeEnum.Create)
-	{
-	}
-}
-
-public abstract class UpdateCommandHandler<TCommand, TAggregate, TKey> : CommandHandler<TCommand, TAggregate, TKey>
-	where TAggregate : AggregateRoot<TKey>
-	where TCommand : IRequest
-	where TKey : Value<TKey>
-{
-	protected UpdateCommandHandler(IRepository<TAggregate, TKey> repo)
-		: base(repo, HandlerTypeEnum.Update)
-	{ }
-
-	protected abstract void PreHandle(TCommand command);
-}
-```
-
-De command handler die we hierboven gemaakt hebben kan aangepast worden naar:
-
-```c#
-public class CreateOrderCommandHandler : CreateCommandHandler<CreateOrderCommand, OrderRoot, OrderId>
-{
-	private readonly IProductRepository _productRepository;
-
-	public CreateOrderCommandHandler(
-		IProductRepository productRepository,
-		IRepository<OrderRoot, OrderId> orderRepository)
-			: base(orderRepository)
-	{
-		_productRepository = productRepository;
-	}
-
-	protected async override Task Apply(CreateOrderCommand command)
-	{
-		AggregateRoot = OrderRoot.Create(OrderId.FromGuid(command.OrderId), ClientId.FromGuid(command.ClientId));
-		foreach (var orderline in command.OrderLines)
-		{
-			var product = await _productRepository.GetProduct(orderline.ProductId);
-			AggregateRoot.AddOrderline(ProductId.FromGuid(product.Id), product.Price, Quantity.FromInt(orderline.Quantity));
+			When(@event);
 		}
 	}
+
+	protected abstract void EnsureValidState();
 }
 ```
 
-Een update command handler ziet er als volgt uit, met de PreHandle method waarbij de AggregateId gezet wordt:
+Dit impliceert dat de volgende stappen gedaan moeten worden in een aggregate root implementatie:
+
+1. Een publieke methode als command aanmaken die parameters accepteert als value objects
+2. De eventuele nodige programmatie doen in deze methode
+3. Aanmaken van een event
+4. Aanroepen van Apply(event)
+5. Aanmaken van een private Handle(event) methode, hier gebeurt enkel het zetten van state.
+
+De Apply(event) gaat op zoek naar de corresponderende Handle methode, voert de methode EnsureValidState() uit om na te gaan of de aggregate root nog in een geldige state is en voegt het event dan toe aan de lijst van events.
+
+Er is ook een mogelijkheid om de events te herspelen met de Replay methode. Deze voert enkel de Handle(event) methodes uit. Dit is al een eigenschap voor Event Sourcing.
+
+De aanpassingen op de OrderRoot ziet er nu als volgt uit:
 
 ```c#
-public sealed class UpdateOrderCommandHandler : UpdateCommandHandler<UpdateOrderCommand, OrderRoot, OrderId>
+public static OrderRoot Create(OrderId orderId, ClientId clientId)
 {
-	private readonly IProductRepository _productRepository;
+	var order = new OrderRoot();
 
-	public UpdateOrderCommandHandler(
-		IRepository<OrderRoot, OrderId> repo,
-		IProductRepository productRepository)
-		: base(repo)
+	order.Apply(new v1.OrderCreated(orderId, clientId, DateTime.Now));
+			
+	return order;
+}
+
+public void AddOrderline(ProductId productId, Money price, Quantity qty)
+{
+	if (!State.IsNewState())
 	{
-		_productRepository = productRepository;
+		throw new InvalidOperationException("Cannot add orderlines to a confirmed order");
 	}
 
-	protected override void PreHandle(UpdateOrderCommand command)
+	if (Lines.Any(ol => ol.ProductId == productId))
 	{
-		AggregateId = OrderId.FromGuid(command.OrderId);
+		throw new InvalidOperationException("Product is already added");
 	}
 
-	protected async override Task Apply(UpdateOrderCommand command)
-	{
-		//Remove orderlines
-		var toRemoveOrderlineProducts = AggregateRoot.Lines.Select(ol => ol.ProductId.Value).Except(command.OrderLines.Select(ol => ol.ProductId));
-		foreach (var toRemoveOrderlineProduct in toRemoveOrderlineProducts)
-		{
-			AggregateRoot.RemoveOrderline(ProductId.FromGuid(toRemoveOrderlineProduct));
-		}
+	Apply(new v1.OrderlineAdded(Id, OrderlineId.GenerateNew(), productId, price.Amount, price.Currency, qty));
+}
 
-		//Update orderlines
-		var toUpdateOrderlineProducts = command.OrderLines.Select(ol => ol.ProductId).Intersect(AggregateRoot.Lines.Select(ol => ol.ProductId.Value));
-		foreach (var toUpdateOrderlineProduct in toUpdateOrderlineProducts)
-		{
-			var dtoOrderline = command.OrderLines.First(ol => ol.ProductId == toUpdateOrderlineProduct);
-			var product = await _productRepository.GetProduct(toUpdateOrderlineProduct);
-			AggregateRoot.UpdateOrderline(ProductId.FromGuid(product.Id), product.Price, Quantity.FromInt(dtoOrderline.Qty));
-		}
+private void Handle(v1.OrderCreated @event)
+{
+	Id = OrderId.FromGuid(@event.OrderId);
+	ClientId = ClientId.FromGuid(@event.ClientId);
+	State = OrderState.FromEnum(OrderState.OrderStateEnum.NEW);
+	OrderDate = OrderDate.FromDateTime(@event.OrderDate);
+	TotalAmount = Money.Empty("EUR");
+	PaidAmount = Money.Empty("EUR");
+	Lines = new List<Orderline>();
+}
 
-		//Add orderlines
-		var toAddOrderlineProducts = command.OrderLines.Select(ol => ol.ProductId).Except(AggregateRoot.Lines.Select(ol => ol.ProductId.Value));
-		foreach (var toAddOrderlineProduct in toAddOrderlineProducts)
-		{
-			var dtoOrderline = command.OrderLines.First(ol => ol.ProductId == toAddOrderlineProduct);
-			var product = await _productRepository.GetProduct(toAddOrderlineProduct);
-			AggregateRoot.AddOrderline(ProductId.FromGuid(product.Id), product.Price, Quantity.FromInt(dtoOrderline.Qty));
-		}
-	}
+private void Handle(v1.OrderlineAdded @event) {
+	Lines.Add(Orderline.Create(
+		OrderlineId.FromGuid(@event.OrderlineId), 
+		ProductId.FromGuid(@event.ProductId),
+		Money.FromDecimalAndCurrency(@event.Price, @event.Currency),
+		Quantity.FromInt(@event.Quantity)));
+
+	TotalAmount = Money.FromDecimalAndCurrency(Lines.Select(x => x.Price.Amount * x.Qty).Sum(), "EUR");
 }
 ```
 
-Door voortschrijdend inzicht over het domein is het duidelijk geworden dat er een context missende was: Shipment. Deze is inmiddels toegevoegd en stuurt het magazijn en de order aan. Het gebrek van opmaken van een degelijk model samen met de domain experten maakt dat er een fout in ons schema is gekropen. 
+### Command handlers
 
-Naast command handlers zijn er ook query handlers. Het query object ziet er als volgt uit:
+In de base command handler gaan we na het bewaren van de aggregate root de events die op de aggregate root zitten uitsturen.
 
 ```c#
-public class GetOrderDtoQuery : IRequest<OrderDto>
+if (!skipSave)
 {
-	public GetOrderDtoQuery(Guid orderId)
+	//Public events
+	foreach (var @event in AggregateRoot.Changes)
 	{
-		OrderId = orderId;
+		await _mediator.Publish(@event);
 	}
 
-	public Guid OrderId { get; }
+	AggregateRoot.ClearChanges();
 }
 ```
 
-En de query handler als volgt:
+### Event handlers
+
+In het BL project maken we naast Command en Queries een nieuwe folder aan Events. Daarin kunnen we de event handlers plaatsen. Een voorbeeld is om de mailservice methods om te vormen naar een event handler. Dus volgende method:
 
 ```c#
-public class GetOrderDtoQueryHandler : IRequestHandler<GetOrderDtoQuery, OrderDto>
+public async Task SendPaymentConfirmationMail(OrderRoot order)
 {
-	private readonly IOrderRepository _orderRepository;
-
-	public GetOrderDtoQueryHandler(IOrderRepository orderRepository)
-	{
-		_orderRepository = orderRepository;
-	}
-
-	public async Task<OrderDto> Handle(GetOrderDtoQuery request, CancellationToken cancellationToken)
-	{
-		return await _orderRepository.GetOrderDto(request.OrderId);
-	}
+	_logger.LogInformation("Payment order confirmation");
+	return;
 }
 ```
 
-### Infrastructure layer: data
-
-Ook in de infrastructure layer trekken we de CQRS door: 
-
-- er zijn nu aparte modellen voor commands en queries. Voor de commands gebruiken we de domain objecten, voor queries de dto's.
-- er zijn aparte repositories. Voor commands implementeren we de IRepository<TAggregate, TKey> en we verwijderen alle methodes die te maken hebben met de domein objecten uit de reeds bestaande repositories.
-
-De order repository voor de command handlers ziet er nu als volgt uit:
+Wordt omgezet naar de volgende event handler:
 
 ```c#
-public class OrderRepository : IRepository<OrderRoot, OrderId>
+public class SendOrderConfirmationMail : INotificationHandler<v1.OrderConfirmed>
 {
-	private readonly BuyyuDbContext _context;
+	private readonly ILogger<SendOrderConfirmationMail> _logger;
 
-	public OrderRepository(BuyyuDbContext context)
+	public SendOrderConfirmationMail(ILogger<SendOrderConfirmationMail> logger)
 	{
-		_context = context;
+		_logger = logger;
 	}
 
-	public async Task Add(OrderRoot aggregateRoot)
+	public async Task Handle(v1.OrderConfirmed notification, CancellationToken cancellationToken)
 	{
-		_context.Add(aggregateRoot);
-		await _context.SaveChangesAsync();
-	}
-
-	public async Task Delete(OrderRoot aggregateRoot)
-	{
-		_context.Remove(aggregateRoot);
-		await _context.SaveChangesAsync();
-	}
-
-	public async Task<OrderRoot> Load(OrderId aggregateId)
-	{
-		return await _context.Orders.Include(x => x.Lines).FirstAsync(x => x.Id == aggregateId);
-	}
-
-	public async Task Save(OrderRoot aggregateRoot)
-	{
-		await _context.SaveChangesAsync();
+		_logger.LogInformation("Sending order confirmation");
 	}
 }
 ```
 
-### Infrastructure layer: controllers
+De bovenste event handler reageert nu op een event OrderConfirmed, en is enkel verantwoordelijk voor het verzenden van de bevestigingsmail.
 
-Bij de controllers mogen we alle interfaces van de services verwijderen (en de services zelf ook als de handlers allemaal zijn geïmplementeerd). We gebruiken nu de command en query objecten om de handlers ervan aan te roepen via MediatR:
+Door de wijze waarop hier de events worden opgegooid, worden deze in hetzelfde proces afgehandeld. In combinatie met bijvoorbeeld Hangserver kan je deze als een job in de background uitvoeren. Om meer naar een microservice manier toe te werken kunnen deze events ook gedispatched worden met een AMQP provider.
 
-```c#
-private readonly IMediator _mediator;
-
-public OrderController(IMediator mediator)
-{
-	_mediator = mediator;
-}
-
-[HttpGet]
-[Route("/{id}")]
-public async Task<OrderDto> GetOrder(Guid id)
-{
-	return await _mediator.Send(new GetOrderDtoQuery(id));
-}
-
-[HttpPost]
-public async Task<OrderDto> CreateOrder(OrderDto order)
-{
-	order.OrderId = Guid.NewGuid();
-
-	var orderlineCommands = order.Orderlines.Select(x => new CreateOrderCommand.OrderLineCommand(x.ProductId, x.Qty)).ToList();
-	var command = new CreateOrderCommand(order.OrderId, order.ClientId, orderlineCommands);
-	await _mediator.Send(command);
-
-	return await GetOrder(order.OrderId);
-}
-```
-
-### Unit testen
-
-Ook kunnen de unit testen nu per use case geschreven worden.
-
-```c#
-[Test]
-public async Task CreateNormalOrder()
-{
-	//Arrange
-	var orderId = OrderId.FromGuid(Guid.NewGuid());
-	var clientId = ClientId.FromGuid(Guid.NewGuid());
-	var productId = ProductId.FromGuid(Guid.NewGuid());
-	var qty = Quantity.FromInt(10);
-	var orderlines = new List<CreateOrderCommand.OrderLineCommand> { new CreateOrderCommand.OrderLineCommand(productId, qty) };
-	var command = new CreateOrderCommand(orderId, clientId, orderlines);
-	var mockOrderRepo = new Mock<IRepository<OrderRoot, OrderId>>();
-	var mockProductRepo = new Mock<IProductRepository>();
-
-	mockProductRepo.Setup(x => x.GetProduct(productId)).ReturnsAsync(
-		new ProductRoot(
-			productId,
-			ProductName.FromString("Dummy"),
-			Description.FromString("Lorem ipsum dolor sit amet, consectetur adipiscing elit"),
-			Money.FromDecimalAndCurrency(10, "EUR")));
-
-	var sut = new CreateOrderCommandHandler(mockProductRepo.Object, mockOrderRepo.Object);
-
-	//Act
-	await sut.Handle(command, CancellationToken.None);
-
-	//Assert
-	mockOrderRepo.Verify(x => x.Add(It.Is<OrderRoot>(
-		or => 
-		or.ClientId == clientId
-		&& or.Id == orderId
-		&& or.Lines.Count == 1
-		&& or.Lines[0].Price.Amount == 10
-		&& or.Lines[0].ProductId == productId
-		&& or.Lines[0].Qty == 10
-		&& or.PaidAmount.Amount == 0m
-		&& or.State == OrderState.OrderStateEnum.NEW
-		&& or.TotalAmount.Amount == 100m)));
-}
-```
-
-We hebben nu testen op de kleinste units: de value objecten, dan op de aggregate root, en nu ook op de handlers. 
-
-## Taken
-
-1. Voer Update-Database uit om de database configuratie aan te passen. 
+Een belangrijke noot - het is al geschreven geweest hierboven - is dat we willen reageren op een event van een andere context, of we willen iets afhandelen in de infrastructure-laag zoals het verzenden van een mail, sms, datawarehouse vullen,...
 
 ## Volgende stap
 
-In het volgende hoofdstuk gaan we verder met het loskoppelen van functionaliteit. Mailservice wordt nog telkens aangeroepen in de command handler zelf, zelfs voor de aggregate root werd opgeslagen in de database! Ook de communicatie tussen de aggregates kan beter. We doen dit met domain events en handlers hierop, zodoende maken we een event driven applicatie.
-
-## Referenties
-
-[1]: https://cqrs.files.wordpress.com/2010/11/cqrs_documents.pdf	"CQRS Documents by Greg Young"
-[2]: https://github.com/jbogard/MediatR	"MediatR"
-
+Momenteel zijn de projecten onderverdeeld in hun technische laag. Wanneer een project groeit kan het lastiger zijn om de verschillende functionele onderdelen die in elke laag samenwerken te vinden. Stel u voor dat je in 100 controllers de ordercontroller moet vinden, dan weer in 200 use case de juiste command of query handler, en dan weer in een ander project de entities. Vele beter zou zijn om de functionele blokken samen te nemen en dan eventueel op te delen in technische lagen.

@@ -21,6 +21,7 @@ namespace buyyu.Domain.Payment
 		}
 
 		public static PaymentId FromGuid(Guid paymentId) => new PaymentId(paymentId);
+
 		public static PaymentId FromString(string paymentId) => new PaymentId(Guid.Parse(paymentId));
 
 		public static PaymentId CreateNew() => new PaymentId(Guid.NewGuid());

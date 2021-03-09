@@ -2,14 +2,15 @@
 using buyyu.Domain.Shared;
 using buyyu.Domain.Warehouse;
 using buyyu.Models.Commands;
+using MediatR;
 using System.Threading.Tasks;
 
 namespace buyyu.BL.Commands
 {
 	public sealed class ReduceStockCommandHandler : UpdateCommandHandler<ReduceStockCommand, WarehouseRoot, ProductId>
 	{
-		public ReduceStockCommandHandler(IRepository<WarehouseRoot, ProductId> repo)
-			: base(repo)
+		public ReduceStockCommandHandler(IRepository<WarehouseRoot, ProductId> repo, IMediator mediator)
+			: base(repo, mediator)
 		{
 		}
 

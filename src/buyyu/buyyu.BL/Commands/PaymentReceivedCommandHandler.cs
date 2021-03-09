@@ -18,7 +18,7 @@ namespace buyyu.BL.Commands
 			IRepository<PaymentRoot, PaymentId> repo,
 			IMediator mediator,
 			IOrderRepository orderRepository)
-			: base(repo)
+			: base(repo, mediator)
 		{
 			_orderRepository = orderRepository;
 			_mediator = mediator;
@@ -37,9 +37,6 @@ namespace buyyu.BL.Commands
 				PaymentId.CreateNew(),
 				OrderId.FromGuid(command.OrderId),
 				Money.FromDecimalAndCurrency(command.Amount, "EUR"));
-
-			//Unwanted coupling
-			await _mediator.Send(new MarkPaidOrderCommand(command.OrderId, command.Amount));
 		}
 	}
 }

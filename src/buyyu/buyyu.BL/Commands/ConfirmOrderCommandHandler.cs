@@ -1,22 +1,20 @@
-﻿using buyyu.BL.Interfaces;
-using buyyu.DDD;
+﻿using buyyu.DDD;
 using buyyu.Domain.Order;
 using buyyu.Domain.Shared;
 using buyyu.Models.Commands;
+using MediatR;
 using System.Threading.Tasks;
 
 namespace buyyu.BL.Commands
 {
 	public sealed class ConfirmOrderCommandHandler : UpdateCommandHandler<ConfirmOrderCommand, OrderRoot, OrderId>
 	{
-		private readonly IMailService _mailService;
 
 		public ConfirmOrderCommandHandler(
 			IRepository<OrderRoot, OrderId> repo,
-			IMailService mailService)
-			: base(repo)
+			IMediator mediator)
+			: base(repo, mediator)
 		{
-			_mailService = mailService;
 		}
 
 		protected override void PreHandle(ConfirmOrderCommand command)
@@ -27,9 +25,6 @@ namespace buyyu.BL.Commands
 		protected async override Task Apply(ConfirmOrderCommand command)
 		{
 			AggregateRoot.Confirm();
-
-			//Send email
-			await _mailService.SendOrderConfirmationMail(AggregateRoot);
 		}
 	}
 }

@@ -1,5 +1,6 @@
 ﻿using buyyu.DDD;
 using buyyu.Domain.Shared;
+using static buyyu.Models.Events.ShipmentEvents;
 
 namespace buyyu.Domain.Shipment
 {
@@ -9,15 +10,21 @@ namespace buyyu.Domain.Shipment
 
 		public static ShipmentRoot Ship(OrderId orderId)
 		{
-			return new ShipmentRoot
-			{
-				Id = orderId,
-				ShipmentDate = ShipmentDate.Now()
-			};
+			var shipment = new ShipmentRoot();
+
+			shipment.Apply(new v1.OrderShipped(orderId, ShipmentDate.Now()));
+
+			return shipment;
 		}
 
 		protected override void EnsureValidState()
 		{
+		}
+
+		private void Handle(v1.OrderShipped @event)
+		{
+			Id = OrderId.FromGuid(@event.OrderId);
+			ShipmentDate = ShipmentDate.FromDateTime(@event.ShipmentDate);
 		}
 	}
 }

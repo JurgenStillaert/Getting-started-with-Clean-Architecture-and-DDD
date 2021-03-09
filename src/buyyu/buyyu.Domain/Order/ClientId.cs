@@ -8,7 +8,7 @@ namespace buyyu.Domain.Order
 		public Guid Value { get; private set; }
 
 		//Satisfy EF Core
-		private ClientId() {}
+		private ClientId() { }
 
 		private ClientId(Guid clientId)
 		{
@@ -21,6 +21,7 @@ namespace buyyu.Domain.Order
 		}
 
 		public static ClientId FromGuid(Guid clientId) => new ClientId(clientId);
+
 		public static ClientId FromString(string clientId) => new ClientId(Guid.Parse(clientId));
 
 		public static implicit operator Guid(ClientId clientId) => clientId.Value;
