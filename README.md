@@ -35,23 +35,44 @@ Wat belangrijk is dat de buitenste lagen, implementatie-details vertegenwoordige
 Waar past Domain Driven Design nu in dit plaatje? Domain Driven Design werd door Eric Evans beschreven in zijn blue book: "Domain Driven Design: Tackling Complexity in the Heart of Software" (2004). Eerst en vooral: DDD is veel breder dan een mogelijke technische implementatie, maar in het boek worden wel enkele tactical patterns aangereikt die kunnen gebruikt worden. Later zullen we deze ook deels gaan implementeren.
 Als we kijken waar we dit gaan doen, dan zal dit in de domain en application laag zijn.
 
-## Werkwijze
+## Inhoud
 
-Deze repository bestaat uit een aantal branches:
-
-- master: deze branch, met het waarom en de werkwijze
-- 0 Starting point: Een layered applicatie en uitleg over de problem space
-- 1 Encapsulation: Toepassen van encapsulation op onze entity classes
-- 2 DDD: Toepassen van enkele tactical patterns
-- 3 CQRS: Het opsplitsen van onze methods naar commands en queries
-- 4 Event driven: Gebruik maken van Domain Events en event handlers die er op reageren
+- [master](https://github.com/JurgenStillaert/Getting-started-with-Clean-Architecture-and-DDD/tree/main): deze branch, met het waarom en de werkwijze
+- [0 Starting point](https://github.com/JurgenStillaert/Getting-started-with-Clean-Architecture-and-DDD/tree/0-Starting-point): Een layered applicatie en uitleg over de problem space
+- [1 Encapsulation](https://github.com/JurgenStillaert/Getting-started-with-Clean-Architecture-and-DDD/tree/1-Encapsulation): Toepassen van encapsulation op onze entity classes
+- [2 DDD](https://github.com/JurgenStillaert/Getting-started-with-Clean-Architecture-and-DDD/tree/2-DDD): Toepassen van enkele tactical patterns
+- [3 CQRS](https://github.com/JurgenStillaert/Getting-started-with-Clean-Architecture-and-DDD/tree/3-CQRS): Het opsplitsen van onze methods naar commands en queries
+- [4 Event driven](https://github.com/JurgenStillaert/Getting-started-with-Clean-Architecture-and-DDD/tree/4-DomainEvents): Gebruik maken van Domain Events en event handlers die er op reageren
 - 5 Functioneel opsplitsen: In plaats van een technische onderverdeling van onze applicatie, gaan we eerst functioneel alles bij elkaar plaatsen
 - 6 Event sourcing: Domain Events gaan opslagen als onze single source of truth 
 
+## Werkwijze
+
+De hoofdstukken zijn onderverdeeld in de branches. Deze toegankelijk door ofwel op de link in de inhoudstafel te klikken ofwel door de branch te veranderen:
+
+![image-20210309175643504](README.assets/image-20210309175643504.png)
+
+Elk hoofdstuk begint met een korte uiteenzetting van wat we willen bereiken, gevolgd door hoe het technisch aangepakt is geweest in het project. De code van het project zit in de volgende hoofdstukken in de src folder.
+
+Om het project binnen te halen kan je best het project forken, zodat je ook zelf met de code kunt spelen: ![image-20210309175849578](README.assets/image-20210309175849578.png)
+
+Er zullen nog heel wat aanpassingen worden gedaan, je kan daarom ook best deze Github repository "watchen": 
+
+![image-20210309180003594](README.assets/image-20210309180003594.png)
+
+En natuurlijk wordt het ten zeerste geapprecieerd dat er een ster gegeven wordt: ![image-20210309180043060](README.assets/image-20210309180043060.png)
+
 ## Technisch
 
-De applicatie en code voorbeelden zijn geschreven C#
+De applicatie en code voorbeelden zijn geschreven C# en gebruik makende van Entity Framework Core, code first. Het is aan te raden om van beide toch enige kennis te hebben.
 
 ## Disclaimer
 
 De code die hier getoond wordt is zeker niet klaar voor productie, er wordt ook abstractie gemaakt van heel wat cross cutting concerns en authentication / authorization.
+
+Ook ben ik gestart van een "verzonnen" project wat niet afgetoetst werd door een functionele analyst of een domein expert. Gaandeweg besefte ik dat er daar in het begin wat steken zijn gevallen en gaandeweg zijn deze dus ook gecorrigeerd. Zo groeide de domain objecten aan. Maar ik kan uit mijn ervaring perfect inbeelden dat dit bij projecten in productie ook het geval is. Door meer granulair technisch te denken, of op deze manier te werken, komt het ook dichter bij het functionele, bij gedrag, te liggen, en dat is goed.
+
+## Contact
+
+Heeft u vragen, opmerkingen, toevoegingen, nood aan extra training of consultancy... gelieve dan contact met me op te nemen via [LinkedIn](https://www.linkedin.com/in/jurgenstillaert/)
+
